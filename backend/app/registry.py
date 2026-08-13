@@ -61,6 +61,25 @@ def provider_status() -> dict[str, dict]:
     }
 
 
+def context_status() -> dict:
+    """Contextual map layers, which are not detection sources and are reported apart.
+
+    Weather tiles need a key. It is served to the browser from the environment rather than
+    baked into the bundle, so a built frontend can be shared without carrying anyone's
+    credentials.
+    """
+    weather_key = os.environ.get("OPENWEATHER_API_KEY")
+    return {
+        "weather": {
+            "available": bool(weather_key),
+            "reason": None if weather_key
+                      else "OPENWEATHER_API_KEY unset; weather layers are hidden",
+            "key": weather_key,
+            "note": "Current conditions, not conditions at the time of a historical scene.",
+        },
+    }
+
+
 def fetch_scene(scene: Scene, sources: list[str] | None = None) -> dict:
     """Every admitted record for a scene, with footprints attached where possible."""
     wanted = sources or list(PROVIDERS)

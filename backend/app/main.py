@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException, Query, Response
 
 from . import compat, export
 from .models import FEED_INFO_V2, SCHEMA_VERSION
-from .registry import fetch_scene, provider_status
+from .registry import context_status, fetch_scene, provider_status
 from .runs import api as runs_api
 from .scenes import SCENES, get_scene
 
@@ -47,6 +47,7 @@ def status_v2() -> dict:
         "feed_info": FEED_INFO_V2,
         "server_time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "providers": provider_status(),
+        "context": context_status(),
         "scenes": sorted(SCENES),
     }
 

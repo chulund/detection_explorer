@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { exportUrl, getDetections, getScenes, getStatus } from './api.js';
 import MapView from './map/MapView.jsx';
+import { availableContextLayers, groupedContextLayers } from './map/contextLayers.js';
 import DetailCard from './panels/DetailCard.jsx';
+import LayerPanel from './panels/LayerPanel.jsx';
 import ProvenanceStrip from './panels/ProvenanceStrip.jsx';
 import RunPanel from './panels/RunPanel.jsx';
 import { formatAge, overpassMarkers, visibleOverpasses } from './time/overpass.js';
@@ -36,6 +38,14 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [runFrames, setRunFrames] = useState([]);
+  const [contextEnabled, setContextEnabled] = useState({});
+
+  // The weather key is supplied to the browser by the API rather than baked into the
+  // bundle, so a build can be shared without carrying anyone's credentials.
+  const weatherKey = status?.context?.weather?.key ?? null;
+  const contextLayers = useMemo(() => availableContextLayers(weatherKey), [weatherKey]);
+  const contextGroups = useMemo(() => groupedContextLayers(weatherKey), [weatherKey]);
+  const toggleContext = (id, on) => setContextEnabled((prev) => ({ ...prev, [id]: on }));
 
   useEffect(() => {
     getScenes().then((b) => setScenes(b.scenes)).catch((e) => setError(e.message));
@@ -169,27 +179,17 @@ export default function App() {
             <RunPanel scene={sceneId} onFrames={setRunFrames} />
           )}
           <DetailCard detection={selected} />
-          <div className="panel">
-            <h2>Layers</h2>
-            {LAYERS.map((layer) => {
-              const count = split[layer.id]?.features.length ?? 0;
-              return (
-                <label key={layer.id} className="layer-row">
-                  <input
-                    type="checkbox"
-                    checked={enabled[layer.id]}
-                    onChange={(e) =>
-                      setEnabled((prev) => ({ ...prev, [layer.id]: e.target.checked }))
-                    }
-                  />
-                  <span>
-                    {layer.label}
-                    <small className="muted"> — {count} · {layer.hint}</small>
-                  </span>
-                </label>
-              );
-            })}
-          </div>
+          <LayerPanel
+            detectionLayers={LAYERS.map((l) => ({
+              ...l, count: split[l.id]?.features.length ?? 0,
+            }))}
+            detectionEnabled={enabled}
+            onDetectionToggle={(id, on) => setEnabled((prev) => ({ ...prev, [id]: on }))}
+            contextGroups={contextGroups}
+            contextEnabled={contextEnabled}
+            onContextToggle={toggleContext}
+            weatherConfigured={!!weatherKey}
+          />
         </aside>
 
         <main className="main">
@@ -200,6 +200,8 @@ export default function App() {
             polar={shown.polar}
             points={shown.points}
             dimmedIds={overpassState.dimmed}
+            contextLayers={contextLayers}
+            contextEnabled={contextEnabled}
             onSelect={setSelected}
           />
         </main>

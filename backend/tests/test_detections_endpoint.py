@@ -78,3 +78,19 @@ def test_scenes_endpoint_declares_the_half_open_window(client):
     assert demo["window"]["start"] == "2026-04-09T04:00:00Z"
     assert len(demo["frames"]) == 6
     assert scenes["current"]["rolling"] is True
+
+
+def test_weather_is_reported_apart_from_detection_providers(client):
+    """Weather is contextual, not a detection source. Putting it among the providers
+    would muddle what "provider" means in this API."""
+    body = client.get("/api/v2/status").json()
+    assert "weather" not in body["providers"]
+    assert set(body["context"]) == {"weather"}
+
+
+def test_weather_key_absence_is_stated_rather_than_implied(client, monkeypatch):
+    monkeypatch.delenv("OPENWEATHER_API_KEY", raising=False)
+    weather = client.get("/api/v2/status").json()["context"]["weather"]
+    assert weather["available"] is False
+    assert "OPENWEATHER_API_KEY" in weather["reason"]
+    assert weather["key"] is None

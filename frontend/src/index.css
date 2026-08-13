@@ -123,3 +123,7 @@ body { margin: 0; background: var(--bg); }
   border-top: 1px solid var(--line);
 }
 .frame-ts { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 3.2rem; }
+
+.layer-hint { display: block; line-height: 1.3; margin-top: 0.1rem; }
+.layer-note { margin: 0.6rem 0 0; line-height: 1.35; }
+.layer-note code { background: #eef0f4; padding: 0 0.2rem; border-radius: 3px; }

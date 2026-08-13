@@ -54,7 +54,38 @@ const BASEMAP_SOURCE = {
   attribution: '© OpenStreetMap contributors',
 };
 
-export default function MapView({ ahi, polar, points, onSelect, dimmedIds }) {
+/** Contextual layers sit above the basemap and below every detection. */
+const FIRST_DETECTION_LAYER = 'ahi-fill';
+
+function syncContextLayers(map, layers, enabled) {
+  for (const layer of layers) {
+    const sourceId = `ctx-${layer.id}`;
+    const layerId = `ctx-${layer.id}-raster`;
+    const wanted = !!enabled[layer.id];
+
+    if (wanted && !map.getSource(sourceId)) {
+      map.addSource(sourceId, {
+        type: 'raster',
+        tiles: [layer.url],
+        tileSize: 256,
+        attribution: layer.attribution,
+      });
+      map.addLayer({
+        id: layerId,
+        type: 'raster',
+        source: sourceId,
+        paint: { 'raster-opacity': layer.opacity ?? 0.5 },
+      }, map.getLayer(FIRST_DETECTION_LAYER) ? FIRST_DETECTION_LAYER : undefined);
+    }
+
+    if (map.getLayer(layerId)) {
+      map.setLayoutProperty(layerId, 'visibility', wanted ? 'visible' : 'none');
+    }
+  }
+}
+
+export default function MapView({ ahi, polar, points, onSelect, dimmedIds,
+                                  contextLayers = [], contextEnabled = {} }) {
   const container = useRef(null);
   const map = useRef(null);
   const ready = useRef(false);
@@ -70,8 +101,8 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds }) {
   // layer-creation callback the current props rather than the empty ones it closed over
   // at mount.
   const [layersReady, setLayersReady] = useState(false);
-  const latest = useRef({ ahi, polar, points, dimmedIds });
-  latest.current = { ahi, polar, points, dimmedIds };
+  const latest = useRef(null);
+  latest.current = { ahi, polar, points, dimmedIds, contextLayers, contextEnabled };
 
   useEffect(() => {
     if (map.current) return;
@@ -162,6 +193,7 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds }) {
       setLayersReady(true);
       const now = latest.current;
       setData(map.current, now, now.dimmedIds);
+      syncContextLayers(map.current, now.contextLayers ?? [], now.contextEnabled ?? {});
     };
 
     // `styledata` rather than `load`: `load` waits for every source to finish, which
@@ -194,6 +226,13 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds }) {
     if (!layersReady || !map.current) return;
     setData(map.current, { ahi, polar, points }, dimmedIds);
   }, [layersReady, ahi, polar, points, dimmedIds]);
+
+  // Contextual layers are added on first use rather than up front, so a catalogue of
+  // seven WMS services costs nothing until someone actually asks for one.
+  useEffect(() => {
+    if (!layersReady || !map.current) return;
+    syncContextLayers(map.current, contextLayers, contextEnabled);
+  }, [layersReady, contextLayers, contextEnabled]);
 
   return <div className="map" ref={container} />;
 }
