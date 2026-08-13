@@ -1,0 +1,1276 @@
+{
+  "scene_id": "april-9-demo",
+  "generated_at": "2026-08-13T04:43:38Z",
+  "detection_nweeks": 4,
+  "backfill_days": 28,
+  "ahi_source": "arc",
+  "parquet_root": "D:\\Orang\\Mark\\20260224_BRIGHT_delivery\\xprize_finals_nsw_bright\\data\\parquet\\xymta",
+  "frames": [
+    {
+      "frame": "20260409040000",
+      "window_days_present": 29,
+      "window_days_required": 29,
+      "bytes": 98831156,
+      "days": [
+        {
+          "slot": "20260312040000",
+          "present": true,
+          "sha256": "efa2341eaedef6031f531c607b27a1c2df2fb519f89e27d6707c797b500a1dfe",
+          "files": 241,
+          "bytes": 3375868
+        },
+        {
+          "slot": "20260313040000",
+          "present": true,
+          "sha256": "b0a985e6d63e5bc5ed059fce4cc301e36b2ccc306a27571989a42d7317637503",
+          "files": 241,
+          "bytes": 3287958
+        },
+        {
+          "slot": "20260314040000",
+          "present": true,
+          "sha256": "46fa19f341ad17d315aeb7d7c250f984563e7fbf2f268ba8f2bb865fa4f9bc66",
+          "files": 241,
+          "bytes": 3434650
+        },
+        {
+          "slot": "20260315040000",
+          "present": true,
+          "sha256": "df9eff3f60f866d1510bc4398d12a7e69b751e0991959bbe5f6fc98e0acaf646",
+          "files": 241,
+          "bytes": 3462113
+        },
+        {
+          "slot": "20260316040000",
+          "present": true,
+          "sha256": "c2fc1b9a35668627c6d500e9ad6216ed51ab637e1848c5aff3a6996075c9c8dd",
+          "files": 241,
+          "bytes": 3515769
+        },
+        {
+          "slot": "20260317040000",
+          "present": true,
+          "sha256": "e1b27749f5d109cc35a8aed57a65b0ed9cebdd302d28d143353a9c7a19a9b040",
+          "files": 241,
+          "bytes": 3634544
+        },
+        {
+          "slot": "20260318040000",
+          "present": true,
+          "sha256": "deb862e230f3d970cbc3e87164a1056e11f9d2e0c3c11bb6f8e8253eb62858ac",
+          "files": 241,
+          "bytes": 3642286
+        },
+        {
+          "slot": "20260319040000",
+          "present": true,
+          "sha256": "e874a34449cb114c3688bfdd0465659bad47fcc7c6a3ca60c6c903f2dd561f82",
+          "files": 241,
+          "bytes": 3516573
+        },
+        {
+          "slot": "20260320040000",
+          "present": true,
+          "sha256": "59e6538d12a366f2302c31a3161a95b1430155b802255a4c90a4f5f1cac8f6bd",
+          "files": 241,
+          "bytes": 3453883
+        },
+        {
+          "slot": "20260321040000",
+          "present": true,
+          "sha256": "49d7ec0aa7cfc31b163e8c3e731ae4d8cba5e9ccd65e3aab4901ccfcfe968e2d",
+          "files": 241,
+          "bytes": 3532901
+        },
+        {
+          "slot": "20260322040000",
+          "present": true,
+          "sha256": "a20c2fb55357b6e55749dde2674875af399e6008d20fc32675c3945ec84cd5c3",
+          "files": 241,
+          "bytes": 3408692
+        },
+        {
+          "slot": "20260323040000",
+          "present": true,
+          "sha256": "c341befa736a2ad5333ba3e1101a076d45697776addcfcb50d6916d97c5c9368",
+          "files": 241,
+          "bytes": 3385066
+        },
+        {
+          "slot": "20260324040000",
+          "present": true,
+          "sha256": "fa641c2384f1aea10eb90d1459d1b8c802e3d023798d09647deca7ced332c166",
+          "files": 241,
+          "bytes": 3529547
+        },
+        {
+          "slot": "20260325040000",
+          "present": true,
+          "sha256": "62a08a7e997d2b7e6aef5042223e06718525748a1ee07f271a1bdf8e8d3dfd30",
+          "files": 241,
+          "bytes": 3526201
+        },
+        {
+          "slot": "20260326040000",
+          "present": true,
+          "sha256": "fa95b58ede8f71a898db88d99e9afd59b9a4c956b0893f876bb990315bb0e36d",
+          "files": 241,
+          "bytes": 3567847
+        },
+        {
+          "slot": "20260327040000",
+          "present": true,
+          "sha256": "e176ceba13d535db9bc9e9fe5ca637d6062efee515f49784c35fe3bf077fed33",
+          "files": 241,
+          "bytes": 3324198
+        },
+        {
+          "slot": "20260328040000",
+          "present": true,
+          "sha256": "38f5afd06a7f4ed67f1b397e22c7f83a5b6d3d984aed8903f0d0f0798255bc59",
+          "files": 241,
+          "bytes": 3144426
+        },
+        {
+          "slot": "20260329040000",
+          "present": true,
+          "sha256": "727e1a3e8a2bea7b43c5fa731603d75c3b83ce3ba45abee3f6e754975e5361fa",
+          "files": 241,
+          "bytes": 3146736
+        },
+        {
+          "slot": "20260330040000",
+          "present": true,
+          "sha256": "4729dd6dc64838f8644dbdafe52de3ac8987206b1568c1b51afe460f213fb17f",
+          "files": 241,
+          "bytes": 3365789
+        },
+        {
+          "slot": "20260331040000",
+          "present": true,
+          "sha256": "6ec75b91f67f0cbf491d1a98c412226cda29325a1fb15c20bd467438ab39745a",
+          "files": 241,
+          "bytes": 3291250
+        },
+        {
+          "slot": "20260401040000",
+          "present": true,
+          "sha256": "c5f637ae64559ebed97f5be4bb8d36ebb041450b1fdb09b16f6e56ca590020e7",
+          "files": 241,
+          "bytes": 3500050
+        },
+        {
+          "slot": "20260402040000",
+          "present": true,
+          "sha256": "27517fb95f347c7e50d1947cc5a72bc780c6acadfded01311fedeab20915df31",
+          "files": 241,
+          "bytes": 3397095
+        },
+        {
+          "slot": "20260403040000",
+          "present": true,
+          "sha256": "91c70afff296dbc0ed74a806400bcb32cf13c838bc5dc2585dc892389c7a0ba4",
+          "files": 241,
+          "bytes": 3397658
+        },
+        {
+          "slot": "20260404040000",
+          "present": true,
+          "sha256": "091bd1f5f3dd78ba4d666ab58c2cede7ce6cd0c52d4cc47af9c7d8e0dd1e7685",
+          "files": 241,
+          "bytes": 3289586
+        },
+        {
+          "slot": "20260405040000",
+          "present": true,
+          "sha256": "12bbff17b9bc89cc6810cb1245b9622c18eaea9d654a8ab523dedfb3e90bc455",
+          "files": 241,
+          "bytes": 3290897
+        },
+        {
+          "slot": "20260406040000",
+          "present": true,
+          "sha256": "00c17504f3e8ddfcc51f2fb99c7e06a3da4f4248443a08492367b9864af68a42",
+          "files": 241,
+          "bytes": 3281404
+        },
+        {
+          "slot": "20260407040000",
+          "present": true,
+          "sha256": "fc2d725f1e7d055afdbbfe02335b9d09f1fe34bd8abbe57f2b68bf2854e77050",
+          "files": 241,
+          "bytes": 3273183
+        },
+        {
+          "slot": "20260408040000",
+          "present": true,
+          "sha256": "d74d2ea496f89b11cb3c39e7aa1b5dad154674901d6de4ecd6bca0a053514753",
+          "files": 241,
+          "bytes": 3436948
+        },
+        {
+          "slot": "20260409040000",
+          "present": true,
+          "sha256": "2708e26be8a60b409a9345e324e827d01b90f82dabb01950f13fd8786ae012b1",
+          "files": 241,
+          "bytes": 3418038
+        }
+      ]
+    },
+    {
+      "frame": "20260409041000",
+      "window_days_present": 29,
+      "window_days_required": 29,
+      "bytes": 98866159,
+      "days": [
+        {
+          "slot": "20260312041000",
+          "present": true,
+          "sha256": "7d33b4f9dc0d76f73eddf4147d27b2801e41e6202ec80cc5913fb08baf37a04c",
+          "files": 241,
+          "bytes": 3373732
+        },
+        {
+          "slot": "20260313041000",
+          "present": true,
+          "sha256": "d993e97e9d76b6821625cd0c164f16057a5d41044b13f767e5a75ba813ba919b",
+          "files": 241,
+          "bytes": 3288881
+        },
+        {
+          "slot": "20260314041000",
+          "present": true,
+          "sha256": "3ebb62009cc453a39892bad0c8dafd31e08891af9781da2e226b59074fd7a110",
+          "files": 241,
+          "bytes": 3434189
+        },
+        {
+          "slot": "20260315041000",
+          "present": true,
+          "sha256": "ec3a93a5468afd3f32135b8e9a071636a6a79705109da40e57e706377701b369",
+          "files": 241,
+          "bytes": 3463493
+        },
+        {
+          "slot": "20260316041000",
+          "present": true,
+          "sha256": "fb7174cff599b3d4587293eda269757590fe62d80b0e3a977a1bc11beae43b63",
+          "files": 241,
+          "bytes": 3516398
+        },
+        {
+          "slot": "20260317041000",
+          "present": true,
+          "sha256": "3d2c4f00ed02903f04b97f3fff3995f34a0dfefd11b7493d534654bcc3b98afb",
+          "files": 241,
+          "bytes": 3631597
+        },
+        {
+          "slot": "20260318041000",
+          "present": true,
+          "sha256": "2ca78706e451a13e48449d83fa354d8994175a8cec2c2ab8f9df4dda3e23efbd",
+          "files": 241,
+          "bytes": 3641467
+        },
+        {
+          "slot": "20260319041000",
+          "present": true,
+          "sha256": "ef92587f162177908aab5336e0559ccf83cf77ec06604f05295df42ec7b2ae1e",
+          "files": 241,
+          "bytes": 3511307
+        },
+        {
+          "slot": "20260320041000",
+          "present": true,
+          "sha256": "0897ca43d1fba68036528d636532f6c2c13935892d45c9e22af16b8a9fce5932",
+          "files": 241,
+          "bytes": 3458635
+        },
+        {
+          "slot": "20260321041000",
+          "present": true,
+          "sha256": "616a19ba70e3d86b91c721e641ada20dc679960311333782de0ad6a4865daec6",
+          "files": 241,
+          "bytes": 3535448
+        },
+        {
+          "slot": "20260322041000",
+          "present": true,
+          "sha256": "5335a25129475854a282d8b4e2e42b558ec1173dc81a8ae00cc2056ecc5244f5",
+          "files": 241,
+          "bytes": 3413907
+        },
+        {
+          "slot": "20260323041000",
+          "present": true,
+          "sha256": "0beb2d5eb67f7fa0e82cfc3ba9a21d2e86b581a8296b26d05dd45d4d4d71d4a3",
+          "files": 241,
+          "bytes": 3395193
+        },
+        {
+          "slot": "20260324041000",
+          "present": true,
+          "sha256": "42112047b656111def1cb000b6813b4b9161c435fec74b74876492f718df31ee",
+          "files": 241,
+          "bytes": 3530088
+        },
+        {
+          "slot": "20260325041000",
+          "present": true,
+          "sha256": "afb9b71f11d27c8cd64f7a5ef5f9d455e5958b87b08dd28b15b1156e99d7547e",
+          "files": 241,
+          "bytes": 3532813
+        },
+        {
+          "slot": "20260326041000",
+          "present": true,
+          "sha256": "dd0c099722de5c7c1f806b1a7c7d20677b9172410e970225b4bbea3a7a86eda3",
+          "files": 241,
+          "bytes": 3571087
+        },
+        {
+          "slot": "20260327041000",
+          "present": true,
+          "sha256": "44c29b342fe62b004aefd3353144a327b4f8fa3e64847aa21a4e847203330c65",
+          "files": 241,
+          "bytes": 3323233
+        },
+        {
+          "slot": "20260328041000",
+          "present": true,
+          "sha256": "e0f4ee1997d5d7b31d130ec5075ae8352310a41b6f0dac11bb68bafe61dfa7c3",
+          "files": 241,
+          "bytes": 3138932
+        },
+        {
+          "slot": "20260329041000",
+          "present": true,
+          "sha256": "1e22839a304f7f9fbe94c5a0e2646a40966212366eb91403b4b968b27f3e5232",
+          "files": 241,
+          "bytes": 3141965
+        },
+        {
+          "slot": "20260330041000",
+          "present": true,
+          "sha256": "e26479724632fd38ba06bfdde2ea2ca30b040872df3d634bb0eab595a97ce355",
+          "files": 241,
+          "bytes": 3367311
+        },
+        {
+          "slot": "20260331041000",
+          "present": true,
+          "sha256": "6f38233adc2f8c910a722bdfd64b7516f44b28f0be611effd0a141c76000a188",
+          "files": 241,
+          "bytes": 3288835
+        },
+        {
+          "slot": "20260401041000",
+          "present": true,
+          "sha256": "7f45e154f0523879f12b4d256496ca5b5d80134fbda6351474906d0f648c247e",
+          "files": 241,
+          "bytes": 3502245
+        },
+        {
+          "slot": "20260402041000",
+          "present": true,
+          "sha256": "888ab402df8446ee087962e3e697cc7a6b560b776910e16db73690c96e8c5a37",
+          "files": 241,
+          "bytes": 3401196
+        },
+        {
+          "slot": "20260403041000",
+          "present": true,
+          "sha256": "b89e410a89941fac4bb36445d28fc73eeb3daa24a752c9a56ad6d9d2887e7caa",
+          "files": 241,
+          "bytes": 3402625
+        },
+        {
+          "slot": "20260404041000",
+          "present": true,
+          "sha256": "e2987c474f1507dd0450c52ae596605fda0ee004dd2f7dee8ffa2b8c52a5766a",
+          "files": 241,
+          "bytes": 3286827
+        },
+        {
+          "slot": "20260405041000",
+          "present": true,
+          "sha256": "93b9f3f86cf340e3f3109c0f5f30fe12b6037d7dc70ddfd48bfa3a659f8855eb",
+          "files": 241,
+          "bytes": 3288862
+        },
+        {
+          "slot": "20260406041000",
+          "present": true,
+          "sha256": "c506bef241431cb299e52af7b660ced833f03755ca255afbedacd25e1e868f6e",
+          "files": 241,
+          "bytes": 3287182
+        },
+        {
+          "slot": "20260407041000",
+          "present": true,
+          "sha256": "e113fed1d826ac05a2a494d19416f211ed6bf4570563a949cfc673a77b798f14",
+          "files": 241,
+          "bytes": 3276699
+        },
+        {
+          "slot": "20260408041000",
+          "present": true,
+          "sha256": "afed6bfe8206e105b6aa5c58c0a3da3a6544a8f7d09fbbc03ccedb0296b6aecb",
+          "files": 241,
+          "bytes": 3439681
+        },
+        {
+          "slot": "20260409041000",
+          "present": true,
+          "sha256": "398b61bf022b854b6d4e701d023d9ce6180c15c907719c6c8520d5e90e896060",
+          "files": 241,
+          "bytes": 3422331
+        }
+      ]
+    },
+    {
+      "frame": "20260409042000",
+      "window_days_present": 29,
+      "window_days_required": 29,
+      "bytes": 98867298,
+      "days": [
+        {
+          "slot": "20260312042000",
+          "present": true,
+          "sha256": "146c3fb3c36761bd5fb3f2a560551f5f20a89708e07a53972e1868139eee92bf",
+          "files": 241,
+          "bytes": 3374040
+        },
+        {
+          "slot": "20260313042000",
+          "present": true,
+          "sha256": "39a0a091f39e3f52bf25801f7c8ceb59a5a8c9c378fa2f64f8b98c61ef410900",
+          "files": 241,
+          "bytes": 3282288
+        },
+        {
+          "slot": "20260314042000",
+          "present": true,
+          "sha256": "bd08abea8827800bab5a485278f4e5febf43d733adb244cb6756281e6d5a46b5",
+          "files": 241,
+          "bytes": 3437157
+        },
+        {
+          "slot": "20260315042000",
+          "present": true,
+          "sha256": "0c0bda371b4ac7d275f2074fc198e2f5703cda8f18d34f38598de83f6bd6568c",
+          "files": 241,
+          "bytes": 3466653
+        },
+        {
+          "slot": "20260316042000",
+          "present": true,
+          "sha256": "97d41806ea825b7fb1c8f3b8f7a6b5a1983371f20f0181a75a676a8c8b2bbba1",
+          "files": 241,
+          "bytes": 3513042
+        },
+        {
+          "slot": "20260317042000",
+          "present": true,
+          "sha256": "e14a39f061aa1a80bbdb480274fa97baee5edda15997d486793bff63fb83df9d",
+          "files": 241,
+          "bytes": 3627152
+        },
+        {
+          "slot": "20260318042000",
+          "present": true,
+          "sha256": "13533e5ee9f7ad0268a3cb20609c558c970e25d2d567474745562aa021342f83",
+          "files": 241,
+          "bytes": 3633671
+        },
+        {
+          "slot": "20260319042000",
+          "present": true,
+          "sha256": "4ab48b3e714b6cb974b2538f38e37d14548140f2852aa24979bd37872a344cd4",
+          "files": 241,
+          "bytes": 3503527
+        },
+        {
+          "slot": "20260320042000",
+          "present": true,
+          "sha256": "4fb91ccda61c6779882cb64032dc3a1f35177165263e37f22e3bc5954dce9d9f",
+          "files": 241,
+          "bytes": 3460342
+        },
+        {
+          "slot": "20260321042000",
+          "present": true,
+          "sha256": "6060d08e9ad190fb7dd07a44591f116d65c29e9a0f9db88e0be4bd6bfbd67163",
+          "files": 241,
+          "bytes": 3540098
+        },
+        {
+          "slot": "20260322042000",
+          "present": true,
+          "sha256": "de2ce49cd5864d147dbd3238ceb15a3b9e56e5468d1e2417082c3bbfb0cdf79c",
+          "files": 241,
+          "bytes": 3421277
+        },
+        {
+          "slot": "20260323042000",
+          "present": true,
+          "sha256": "34650f618a620f9ae8a1a1a822b403c25eefc6e3e9ab5737b4b86d0a3304248d",
+          "files": 241,
+          "bytes": 3404820
+        },
+        {
+          "slot": "20260324042000",
+          "present": true,
+          "sha256": "4505c4ed731a978d947c8c9562cc5211a77959d5908357db4cc96ebc29ed101f",
+          "files": 241,
+          "bytes": 3532127
+        },
+        {
+          "slot": "20260325042000",
+          "present": true,
+          "sha256": "065e9a24539ed565f6ad293cf8ffc65045d62c33a51c3edeb0a0fb5ddbd28968",
+          "files": 241,
+          "bytes": 3535597
+        },
+        {
+          "slot": "20260326042000",
+          "present": true,
+          "sha256": "836b6e504846d450447156d1fa56c141ef13e5ddaecdea29b61b9e86feff28f8",
+          "files": 241,
+          "bytes": 3570428
+        },
+        {
+          "slot": "20260327042000",
+          "present": true,
+          "sha256": "e0d50291f9aba43b4a53f6eed28d4c7730dfc89a406d04d4de9a5cf6092a3c85",
+          "files": 241,
+          "bytes": 3317804
+        },
+        {
+          "slot": "20260328042000",
+          "present": true,
+          "sha256": "041d5b56840ad69fe9099c649bea3412055aa38f5ff5f2ec5bd02a9f6398d25f",
+          "files": 241,
+          "bytes": 3132843
+        },
+        {
+          "slot": "20260329042000",
+          "present": true,
+          "sha256": "b5a05ff12014733ea6016616d9c69f6420ccd342401937b77e21ff345dfb2b9a",
+          "files": 241,
+          "bytes": 3132769
+        },
+        {
+          "slot": "20260330042000",
+          "present": true,
+          "sha256": "41a621f3b75c17b4121d94fe49d6c0245b3f745b676803a363a28f80b211a1b0",
+          "files": 241,
+          "bytes": 3365709
+        },
+        {
+          "slot": "20260331042000",
+          "present": true,
+          "sha256": "30d8a608ee9c199c67fb9d7353ac8c24f657c9880137665f11ea13e53806e365",
+          "files": 241,
+          "bytes": 3287814
+        },
+        {
+          "slot": "20260401042000",
+          "present": true,
+          "sha256": "63ec4bbc85ee6feb2d56447ec2ae1bff1bba7ed8f6a97ea0f1b61b0f3e0a09ab",
+          "files": 241,
+          "bytes": 3502317
+        },
+        {
+          "slot": "20260402042000",
+          "present": true,
+          "sha256": "e3b53752b690c3eb15cb31101540991bb840c658544d97f703f881479188af3d",
+          "files": 241,
+          "bytes": 3402813
+        },
+        {
+          "slot": "20260403042000",
+          "present": true,
+          "sha256": "e50d7edc983b844a6af107897411d5523776ddf0f39f44b908435e2b36e2ebf0",
+          "files": 241,
+          "bytes": 3404719
+        },
+        {
+          "slot": "20260404042000",
+          "present": true,
+          "sha256": "89e728d483a1084a0ab8f5720713505dc6e4da1dc17ac09dd4c6a9269e12085a",
+          "files": 241,
+          "bytes": 3285498
+        },
+        {
+          "slot": "20260405042000",
+          "present": true,
+          "sha256": "ef095fdfaafc46869325e01a8562d3725e72dd5dd18938a8f6798639c8653d3b",
+          "files": 241,
+          "bytes": 3292784
+        },
+        {
+          "slot": "20260406042000",
+          "present": true,
+          "sha256": "f0eceed341ef24e1db72be192b5444dfdcd9641ebd6b5f2501098cc667f0b532",
+          "files": 241,
+          "bytes": 3291895
+        },
+        {
+          "slot": "20260407042000",
+          "present": true,
+          "sha256": "15639170c5c0bb7549b8ab72b397a3582dd8bac7516362db1578be41a581ecc7",
+          "files": 241,
+          "bytes": 3284904
+        },
+        {
+          "slot": "20260408042000",
+          "present": true,
+          "sha256": "84a8d575c712e29e213eb87a69a31cdaf364017466ecd4fa7ba5f2fd216dcfdb",
+          "files": 241,
+          "bytes": 3439298
+        },
+        {
+          "slot": "20260409042000",
+          "present": true,
+          "sha256": "7f9545be31d053f576d8aeb27c14cb58739a2230b205ea734e2e40ccd5f633a4",
+          "files": 241,
+          "bytes": 3423912
+        }
+      ]
+    },
+    {
+      "frame": "20260409043000",
+      "window_days_present": 29,
+      "window_days_required": 29,
+      "bytes": 98834886,
+      "days": [
+        {
+          "slot": "20260312043000",
+          "present": true,
+          "sha256": "00f0302856f1720903cf525eb59314b4223a10ce59f3e30291c07fbbabb53485",
+          "files": 241,
+          "bytes": 3375642
+        },
+        {
+          "slot": "20260313043000",
+          "present": true,
+          "sha256": "b3c34bd0d6a3afd6c57c3e78766fff44e163f895626d01c915846779d122fad8",
+          "files": 241,
+          "bytes": 3281811
+        },
+        {
+          "slot": "20260314043000",
+          "present": true,
+          "sha256": "fc43a6a0525668a58643d611c1fd299f2a761ae916d77ebd35ef95cee16fbb62",
+          "files": 241,
+          "bytes": 3436129
+        },
+        {
+          "slot": "20260315043000",
+          "present": true,
+          "sha256": "a566da1d85e0a888d8416300ec9f719ed425aa8c4a76c7251e4684ec023ad8c6",
+          "files": 241,
+          "bytes": 3466613
+        },
+        {
+          "slot": "20260316043000",
+          "present": true,
+          "sha256": "34ca39fdd22648cb37f37283975cd09726d70894b325a216725f96ddd7b7414c",
+          "files": 241,
+          "bytes": 3508633
+        },
+        {
+          "slot": "20260317043000",
+          "present": true,
+          "sha256": "895a9e7dc299df3d361df877e0f635dbeb46c8f6359e37779218861388efb5f2",
+          "files": 241,
+          "bytes": 3621660
+        },
+        {
+          "slot": "20260318043000",
+          "present": true,
+          "sha256": "6d94fbca8296eeaaa5eaf0edc3670a891c6c86536ab69c62c767f58c74a6e36b",
+          "files": 241,
+          "bytes": 3626544
+        },
+        {
+          "slot": "20260319043000",
+          "present": true,
+          "sha256": "26e034b60689a698f7311dc034e51c353afafd97900cd9c3bb55283f837bffe6",
+          "files": 241,
+          "bytes": 3496671
+        },
+        {
+          "slot": "20260320043000",
+          "present": true,
+          "sha256": "48ee901c378b4e4332d5ec5194d05d0dbf628f561136aecacf068151e3152e74",
+          "files": 241,
+          "bytes": 3466289
+        },
+        {
+          "slot": "20260321043000",
+          "present": true,
+          "sha256": "1fabc9d2724e2ecfbfe48304e8f8d9d95791b8b52457622c106e4bf4a5bce7a0",
+          "files": 241,
+          "bytes": 3542765
+        },
+        {
+          "slot": "20260322043000",
+          "present": true,
+          "sha256": "841d77cd28853e3c9a06b71ea670bcb16708920fe92da1f3f6c55380059df7ed",
+          "files": 241,
+          "bytes": 3422612
+        },
+        {
+          "slot": "20260323043000",
+          "present": true,
+          "sha256": "d19b7a8325296c959ceed65debec93255672146a79f98925c483e1de80123c3e",
+          "files": 241,
+          "bytes": 3410763
+        },
+        {
+          "slot": "20260324043000",
+          "present": true,
+          "sha256": "aec1741e34d0d63429036be3184f6c187f54f0f4c7d33b5580e52176722cc85a",
+          "files": 241,
+          "bytes": 3531013
+        },
+        {
+          "slot": "20260325043000",
+          "present": true,
+          "sha256": "c54d1d9ddfd22b061a811e6d9e2e936689f8860dc5dc3f40e324b0e545fc81c8",
+          "files": 241,
+          "bytes": 3535083
+        },
+        {
+          "slot": "20260326043000",
+          "present": true,
+          "sha256": "8e6abd31dd562f1d6a7d40edc4f830894705656350edb946044ed8bd82e0f8e8",
+          "files": 241,
+          "bytes": 3569391
+        },
+        {
+          "slot": "20260327043000",
+          "present": true,
+          "sha256": "0157226a226aca7da864e3667fdec777528eb24eb2e94fbb002ecd4c7915fa41",
+          "files": 241,
+          "bytes": 3310221
+        },
+        {
+          "slot": "20260328043000",
+          "present": true,
+          "sha256": "5cd56732ae589460a7d4733146bfc2833a1cfc4edd021b7791ceabdaf6ebd5a4",
+          "files": 241,
+          "bytes": 3125176
+        },
+        {
+          "slot": "20260329043000",
+          "present": true,
+          "sha256": "1e1b0b8830ff42eb0b23927d217b97ef01013d7acbf11d9d8df6e2c98c3dc552",
+          "files": 241,
+          "bytes": 3128534
+        },
+        {
+          "slot": "20260330043000",
+          "present": true,
+          "sha256": "5e456bebad7bc3c691c064491a6e1abbc88d64a042913bf09ea67b49588af05d",
+          "files": 241,
+          "bytes": 3362675
+        },
+        {
+          "slot": "20260331043000",
+          "present": true,
+          "sha256": "250a890f3824c465a3ec4b427a8f06a6520fc732247ddb3531f0801f2a18b7d8",
+          "files": 241,
+          "bytes": 3287853
+        },
+        {
+          "slot": "20260401043000",
+          "present": true,
+          "sha256": "c2fe36e1d26a15fabcfbeb9f2dd8aa4f7303cd075b63db7edadd5c855f8c9cdf",
+          "files": 241,
+          "bytes": 3502372
+        },
+        {
+          "slot": "20260402043000",
+          "present": true,
+          "sha256": "3d46d1b5a17fcf02cbe5b9d978d178c68ce0472e4b3e260223f10330bbc8bf9e",
+          "files": 241,
+          "bytes": 3406808
+        },
+        {
+          "slot": "20260403043000",
+          "present": true,
+          "sha256": "12c4a51317a77f4373ad600bc4e99894347e8b0f2be98dfee832d1dbcb001da7",
+          "files": 241,
+          "bytes": 3405626
+        },
+        {
+          "slot": "20260404043000",
+          "present": true,
+          "sha256": "5f5052cb18cc270becce96adca6521cdbf78a03d3cba25660899030120847c8e",
+          "files": 241,
+          "bytes": 3279925
+        },
+        {
+          "slot": "20260405043000",
+          "present": true,
+          "sha256": "c149d9d26501caaca677e596b6fe2dbba8e737c263a805207b0bf50a41b184b6",
+          "files": 241,
+          "bytes": 3291822
+        },
+        {
+          "slot": "20260406043000",
+          "present": true,
+          "sha256": "7192a9836f93335886a8945eb8156b262f4c7fd34ad7f8f09c810af29cb1fc2b",
+          "files": 241,
+          "bytes": 3290982
+        },
+        {
+          "slot": "20260407043000",
+          "present": true,
+          "sha256": "167aecd8e32ed2597a8bad0a78569c718668321b2eb4d334e658089384741b96",
+          "files": 241,
+          "bytes": 3286866
+        },
+        {
+          "slot": "20260408043000",
+          "present": true,
+          "sha256": "7ab81e130fc829e853513e44288740ab63d08d862ddd1b8f2ee34bae396c5170",
+          "files": 241,
+          "bytes": 3441218
+        },
+        {
+          "slot": "20260409043000",
+          "present": true,
+          "sha256": "f6d9937e2c0e3df9d76f5d7f51d2434b4cec0cebfd861a8ffa8d2d27562d00eb",
+          "files": 241,
+          "bytes": 3423189
+        }
+      ]
+    },
+    {
+      "frame": "20260409044000",
+      "window_days_present": 29,
+      "window_days_required": 29,
+      "bytes": 98816532,
+      "days": [
+        {
+          "slot": "20260312044000",
+          "present": true,
+          "sha256": "f9c910411a0248e08ba563ea558c1ef55aa3baed7d9b726791d7a30274e3a208",
+          "files": 241,
+          "bytes": 3373798
+        },
+        {
+          "slot": "20260313044000",
+          "present": true,
+          "sha256": "1a53f28242fd0f9ee01fb5a1373ab678b2b6ae5720c84811450abbf95f5e09af",
+          "files": 241,
+          "bytes": 3282615
+        },
+        {
+          "slot": "20260314044000",
+          "present": true,
+          "sha256": "7b1b74c7f4a7c25fbbb4402124e9e821295992ba752450b275331f1d5f5e14eb",
+          "files": 241,
+          "bytes": 3433620
+        },
+        {
+          "slot": "20260315044000",
+          "present": true,
+          "sha256": "b952c7ea171a076cded2f017c035fc278a9e03a7add46f37a1d338e7cb71ba61",
+          "files": 241,
+          "bytes": 3466114
+        },
+        {
+          "slot": "20260316044000",
+          "present": true,
+          "sha256": "3a578421a8f7c2228ecef5038ed2c4bd2e200f2960ec6772866e6a62a6ce9f14",
+          "files": 241,
+          "bytes": 3502713
+        },
+        {
+          "slot": "20260317044000",
+          "present": true,
+          "sha256": "4f344e3acc58b13b160dbc9d67d62f3d129adbea2e8273ffb5ba2f52fdb27c37",
+          "files": 241,
+          "bytes": 3621054
+        },
+        {
+          "slot": "20260318044000",
+          "present": true,
+          "sha256": "06e7916c2ebde912104e09af80e0ae70ebdebe76716a1a15ab670d64fc20fb7c",
+          "files": 241,
+          "bytes": 3623522
+        },
+        {
+          "slot": "20260319044000",
+          "present": true,
+          "sha256": "e632024e9f1d867091be298ce933d0d4bea06b5a7f6f666b706123581c3e8f41",
+          "files": 241,
+          "bytes": 3496599
+        },
+        {
+          "slot": "20260320044000",
+          "present": true,
+          "sha256": "f3e9718f6b9cb51a7ce81a58321d98b7f6ef1d767782085b2c84025488b42a92",
+          "files": 241,
+          "bytes": 3469464
+        },
+        {
+          "slot": "20260321044000",
+          "present": true,
+          "sha256": "78be8545db559de2d65c13e1bd1523f77e58f4aac2af6ea930056b79b5783cc5",
+          "files": 241,
+          "bytes": 3546796
+        },
+        {
+          "slot": "20260322044000",
+          "present": true,
+          "sha256": "a21ad38e5597cbd5ad0c167700c2d0560b057eb7b7b0310ca026aa98078640b0",
+          "files": 241,
+          "bytes": 3423276
+        },
+        {
+          "slot": "20260323044000",
+          "present": true,
+          "sha256": "ac69994216c1369875982d002bbb042364841c18be08ec70dbd1b069eaba9c12",
+          "files": 241,
+          "bytes": 3413078
+        },
+        {
+          "slot": "20260324044000",
+          "present": true,
+          "sha256": "b6a3819567b685199d7171460efd90689cf797e0a75750f45337ca0879ff84ff",
+          "files": 241,
+          "bytes": 3532404
+        },
+        {
+          "slot": "20260325044000",
+          "present": true,
+          "sha256": "b37e53f45a73390446bb91ca95c3c5d33c0fe115f9ba78d2b299f619d26ef1e7",
+          "files": 241,
+          "bytes": 3541589
+        },
+        {
+          "slot": "20260326044000",
+          "present": true,
+          "sha256": "217da8bbdc0b541f1d09b8bb560d9ec83495570a481f779d949bee7145f9b255",
+          "files": 241,
+          "bytes": 3568602
+        },
+        {
+          "slot": "20260327044000",
+          "present": true,
+          "sha256": "4fc7c25c71fc5420d101f982e8dee201caad7f9e1412c90dc457289fd67a1540",
+          "files": 241,
+          "bytes": 3302435
+        },
+        {
+          "slot": "20260328044000",
+          "present": true,
+          "sha256": "4aef6c1b91191189b38675f97aab935001bf80a016435340fdaaefaafaa7c739",
+          "files": 241,
+          "bytes": 3120836
+        },
+        {
+          "slot": "20260329044000",
+          "present": true,
+          "sha256": "0442150752335ec9ec5cef841386226723fb39c06a01987c0544cea725ea8458",
+          "files": 241,
+          "bytes": 3121066
+        },
+        {
+          "slot": "20260330044000",
+          "present": true,
+          "sha256": "f160e1ba84219d3edd677165d51e6daf22976d0de70877c2444128e19d6f0bcb",
+          "files": 241,
+          "bytes": 3360013
+        },
+        {
+          "slot": "20260331044000",
+          "present": true,
+          "sha256": "7eadfaecc049687c24ca6841c4f1ee0280e19f70570397912bdd8187cfbb79c5",
+          "files": 241,
+          "bytes": 3284910
+        },
+        {
+          "slot": "20260401044000",
+          "present": true,
+          "sha256": "7446f690be609221d3081ddb350eae2609d5e33095d16221fb96cd0a82f71196",
+          "files": 241,
+          "bytes": 3503059
+        },
+        {
+          "slot": "20260402044000",
+          "present": true,
+          "sha256": "6841df093689a3057ab9931a0d683ac143c07101f4abd48c9ed937b73fc0f5e1",
+          "files": 241,
+          "bytes": 3410106
+        },
+        {
+          "slot": "20260403044000",
+          "present": true,
+          "sha256": "9c2e9da366c4b81844447a567c0575ad37238a12f93866facbd578d971326bb5",
+          "files": 241,
+          "bytes": 3403651
+        },
+        {
+          "slot": "20260404044000",
+          "present": true,
+          "sha256": "02063716534b986207713da7369c323a9f51011e8c678771844418fd59a53e63",
+          "files": 241,
+          "bytes": 3272573
+        },
+        {
+          "slot": "20260405044000",
+          "present": true,
+          "sha256": "2723b385d97e5d3160f1b84c1dd0602ea805cad5a72124b9aa6bb9c8992ca5f3",
+          "files": 241,
+          "bytes": 3290790
+        },
+        {
+          "slot": "20260406044000",
+          "present": true,
+          "sha256": "af7d52ceff7286ff2fcf0b95203312dfe86f97c9f90551a7a1d2587acdab016c",
+          "files": 241,
+          "bytes": 3294163
+        },
+        {
+          "slot": "20260407044000",
+          "present": true,
+          "sha256": "a672c9779d1e413bea052ae384559c7ab47b2bcc1e8214ada01ef1ab2fb1950a",
+          "files": 241,
+          "bytes": 3289347
+        },
+        {
+          "slot": "20260408044000",
+          "present": true,
+          "sha256": "9bd8db786eaad5db763e6cd51b8f3179517a993d93b16c6a9f0c688ff9745265",
+          "files": 241,
+          "bytes": 3441542
+        },
+        {
+          "slot": "20260409044000",
+          "present": true,
+          "sha256": "fc4a834f64dc050321fc6d4cfe31e929c9fe60a3c00f8e4c67b57e4bd7c375b0",
+          "files": 241,
+          "bytes": 3426797
+        }
+      ]
+    },
+    {
+      "frame": "20260409045000",
+      "window_days_present": 29,
+      "window_days_required": 29,
+      "bytes": 98777036,
+      "days": [
+        {
+          "slot": "20260312045000",
+          "present": true,
+          "sha256": "285035a11ce65a47d4ff66f58dbae7c46c535ab7c296a02b133b5e5f437f7dc5",
+          "files": 241,
+          "bytes": 3376531
+        },
+        {
+          "slot": "20260313045000",
+          "present": true,
+          "sha256": "33740f27b8d39a233b820e2f76ff667abd8d28e2a5ba7fd709c47636d7a6b5e0",
+          "files": 241,
+          "bytes": 3276923
+        },
+        {
+          "slot": "20260314045000",
+          "present": true,
+          "sha256": "30aff24807d51a23c67f21f4dd102747ed4e9291685634c13dbf5f5b6b8180e4",
+          "files": 241,
+          "bytes": 3433104
+        },
+        {
+          "slot": "20260315045000",
+          "present": true,
+          "sha256": "6f6d2365f1d2f67d9c6b707faf2f397245dfeba5713bf3bef8c26e210a332a57",
+          "files": 241,
+          "bytes": 3466918
+        },
+        {
+          "slot": "20260316045000",
+          "present": true,
+          "sha256": "62de02bac0afeb4b8c7dd7c745c53f5509d302841efd0719436498a786939080",
+          "files": 241,
+          "bytes": 3499382
+        },
+        {
+          "slot": "20260317045000",
+          "present": true,
+          "sha256": "945b61e34acfba52f9bbc111fe75b416ceb967a786fef556af0c891fad180ffe",
+          "files": 241,
+          "bytes": 3619730
+        },
+        {
+          "slot": "20260318045000",
+          "present": true,
+          "sha256": "2287d067a49bd9dc598bb84038dfc86f2fded391f951b607c77bf5d46ae5ede0",
+          "files": 241,
+          "bytes": 3619958
+        },
+        {
+          "slot": "20260319045000",
+          "present": true,
+          "sha256": "f90741250cd48fca00be4a8a01d40fe7e7f759060a43894f9b2d87045f55498a",
+          "files": 241,
+          "bytes": 3494569
+        },
+        {
+          "slot": "20260320045000",
+          "present": true,
+          "sha256": "5ec50a712374dc2c1e17963e360d08ccd849df803a16350fb7112cda7016f391",
+          "files": 241,
+          "bytes": 3472947
+        },
+        {
+          "slot": "20260321045000",
+          "present": true,
+          "sha256": "2a53850790cee419ae154159aa7150b51ce135cd7616b3781e7de037353c4c95",
+          "files": 241,
+          "bytes": 3547574
+        },
+        {
+          "slot": "20260322045000",
+          "present": true,
+          "sha256": "9bef65edb7cc6f630b437fd36eac604668c3bff58902622e8539dff2a7dedaa8",
+          "files": 241,
+          "bytes": 3427709
+        },
+        {
+          "slot": "20260323045000",
+          "present": true,
+          "sha256": "b9737b43743572ffc3d7c31124278dd7fa840574f91d9192f68b6c165d7bc8d9",
+          "files": 241,
+          "bytes": 3412915
+        },
+        {
+          "slot": "20260324045000",
+          "present": true,
+          "sha256": "778fb908e9e015c8b8a8d130f114821c6267001076caf0fad28d863fc66ae95d",
+          "files": 241,
+          "bytes": 3532541
+        },
+        {
+          "slot": "20260325045000",
+          "present": true,
+          "sha256": "c9480df1950950cdc63f17b1872d6a3fb3ba2c019f352738a8b92f7771924d9b",
+          "files": 241,
+          "bytes": 3535870
+        },
+        {
+          "slot": "20260326045000",
+          "present": true,
+          "sha256": "ba8a1e2a1180391f86659d73fd8d8bb33165a8a33e45d474d0c4fd94d7c0d35b",
+          "files": 241,
+          "bytes": 3570268
+        },
+        {
+          "slot": "20260327045000",
+          "present": true,
+          "sha256": "0195af4efb3e5f5dad75a339dfbbfa55a9fdf89d4fae793508c9fc1a33b6ed24",
+          "files": 241,
+          "bytes": 3300099
+        },
+        {
+          "slot": "20260328045000",
+          "present": true,
+          "sha256": "fbcd1038bb343706a05bace9b4f355f6a6225511d6103eb9ae83fb0642a881d1",
+          "files": 241,
+          "bytes": 3113161
+        },
+        {
+          "slot": "20260329045000",
+          "present": true,
+          "sha256": "5f6a15b471d3560d3d39e24649e4b5586f0567dcc439d111880328e8898a55fb",
+          "files": 241,
+          "bytes": 3116571
+        },
+        {
+          "slot": "20260330045000",
+          "present": true,
+          "sha256": "8c04eecf37ab1a41c582d77dbacc39a17cf369cbf66aa4a3584ce6949b9342b8",
+          "files": 241,
+          "bytes": 3358558
+        },
+        {
+          "slot": "20260331045000",
+          "present": true,
+          "sha256": "2efc0c29d5721276b0d350ea407bce2c9cc0d98c931982c997248c978d95abb9",
+          "files": 241,
+          "bytes": 3280328
+        },
+        {
+          "slot": "20260401045000",
+          "present": true,
+          "sha256": "eaa0722ee53895180259fc94aadb97a195d71b000586bee28b67e17569fc0d9a",
+          "files": 241,
+          "bytes": 3498513
+        },
+        {
+          "slot": "20260402045000",
+          "present": true,
+          "sha256": "7009ba5dbf91927049c7f20353fbe36d09fcc59f0e9c43999cfbfca92f0299f6",
+          "files": 241,
+          "bytes": 3409798
+        },
+        {
+          "slot": "20260403045000",
+          "present": true,
+          "sha256": "d46a982ca8673e6bf5d77052c5cb75c328379c744e8e7c09dab7e8466cac38a0",
+          "files": 241,
+          "bytes": 3405822
+        },
+        {
+          "slot": "20260404045000",
+          "present": true,
+          "sha256": "991237ceeeab119cd3cddf19d7d7b6d0fd320c5cb83c9394f95b7c200d6e2e5b",
+          "files": 241,
+          "bytes": 3267909
+        },
+        {
+          "slot": "20260405045000",
+          "present": true,
+          "sha256": "a6e2b53ae14b7154443bd44116bb73daf7892101db8904301b70ca2c95752a38",
+          "files": 241,
+          "bytes": 3289063
+        },
+        {
+          "slot": "20260406045000",
+          "present": true,
+          "sha256": "ba48f21ae136f9e88a81a6ac4ecb0a421de5830f7bf7aaf284388825014f83b1",
+          "files": 241,
+          "bytes": 3292674
+        },
+        {
+          "slot": "20260407045000",
+          "present": true,
+          "sha256": "e1e85a578e1fe66a877172ccb1861027bb47709022dd70360a57ff20e1c9cda7",
+          "files": 241,
+          "bytes": 3291573
+        },
+        {
+          "slot": "20260408045000",
+          "present": true,
+          "sha256": "25b7ffd7eb92a44207323ad132d2732478fc3c82fda377e1429f1f3da2c1917f",
+          "files": 241,
+          "bytes": 3435121
+        },
+        {
+          "slot": "20260409045000",
+          "present": true,
+          "sha256": "44beb65a168300fa7cfd1ec7596e1bc6da9cbc4694dc2f9afc405cca953e2341",
+          "files": 241,
+          "bytes": 3430907
+        }
+      ]
+    }
+  ]
+}
