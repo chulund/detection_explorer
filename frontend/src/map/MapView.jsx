@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -58,6 +58,20 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds }) {
   const container = useRef(null);
   const map = useRef(null);
   const ready = useRef(false);
+
+  // `ready` has to exist twice, and the reason is a bug this cost an afternoon.
+  //
+  // The ref is what the map's own callbacks read, because they fire outside React's
+  // render cycle. But a ref changing does not re-run an effect, so when the layers were
+  // finally created the data effect had already bailed out and never ran again: React
+  // held 505 detections while the map held none.
+  //
+  // The state mirror gives the data effect something to depend on, and `latest` gives the
+  // layer-creation callback the current props rather than the empty ones it closed over
+  // at mount.
+  const [layersReady, setLayersReady] = useState(false);
+  const latest = useRef({ ahi, polar, points, dimmedIds });
+  latest.current = { ahi, polar, points, dimmedIds };
 
   useEffect(() => {
     if (map.current) return;
@@ -145,7 +159,9 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds }) {
         });
       }
       ready.current = true;
-      setData(map.current, { ahi, polar, points }, dimmedIds);
+      setLayersReady(true);
+      const now = latest.current;
+      setData(map.current, now, now.dimmedIds);
     };
 
     // `styledata` rather than `load`: `load` waits for every source to finish, which
@@ -175,9 +191,9 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds }) {
   }, []);
 
   useEffect(() => {
-    if (!ready.current || !map.current) return;
+    if (!layersReady || !map.current) return;
     setData(map.current, { ahi, polar, points }, dimmedIds);
-  }, [ahi, polar, points, dimmedIds]);
+  }, [layersReady, ahi, polar, points, dimmedIds]);
 
   return <div className="map" ref={container} />;
 }
