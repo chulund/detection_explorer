@@ -18,26 +18,40 @@ import 'maplibre-gl/dist/maplibre-gl.css';
  * style, because they are one detection's uncertainty rather than two detections.
  */
 
-const BASEMAP = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 const NSW = { center: [147.5, -32.5], zoom: 5.2 };
-const BASEMAP_TIMEOUT_MS = 6000;
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
 /**
- * A basemap that needs no network at all.
+ * The map starts with a style that needs no network, then adds a basemap on top.
  *
- * The interface is delivered to run on localhost, possibly on a machine with no route to
- * a tile CDN. MapLibre paints nothing until its whole style has loaded, so a stalled
- * third-party basemap does not merely leave the map plain, it hides the detections too.
- * That is unacceptable: the detections are the deliverable and the basemap is decoration.
- * If the external style has not loaded within a few seconds, the map falls back to this.
+ * This ordering is deliberate and was arrived at the hard way. The obvious approach —
+ * point MapLibre at a hosted style — makes the detections hostage to a third party. A
+ * hosted vector style pulls in a sprite sheet, a glyph server and worker-side tile
+ * parsing, and if any of those stalls the style never reaches a loaded state. An earlier
+ * attempt to paper over that with a timeout was worse still: it called `setStyle` while
+ * the first style was mid-flight, and MapLibre discarded both ("Unable to perform style
+ * diff: Style is not done loading").
+ *
+ * Starting local inverts the dependency. This style has no sources, so it loads
+ * immediately and the detection layers can be added straight away. The basemap is then
+ * attached as an ordinary source; if its tiles never arrive, the map shows detections on
+ * a plain ground rather than showing nothing at all. For a deliverable that runs on
+ * localhost, possibly with no route out, that is the right way round.
  */
-const OFFLINE_STYLE = {
+const BASE_STYLE = {
   version: 8,
   sources: {},
   layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#eef1f5' } }],
-  glyphs: undefined,
+};
+
+/** Raster rather than vector: plain images, no sprite, no glyphs, no worker parsing. */
+const BASEMAP_SOURCE = {
+  type: 'raster',
+  tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+  tileSize: 256,
+  maxzoom: 19,
+  attribution: '© OpenStreetMap contributors',
 };
 
 export default function MapView({ ahi, polar, points, onSelect, dimmedIds }) {
@@ -49,7 +63,7 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds }) {
     if (map.current) return;
     map.current = new maplibregl.Map({
       container: container.current,
-      style: BASEMAP,
+      style: BASE_STYLE,
       center: NSW.center,
       zoom: NSW.zoom,
       attributionControl: { compact: true },
@@ -66,6 +80,17 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds }) {
     // soon as the style is parsed, which is all that is needed to add sources.
     const addOurLayers = () => {
       if (ready.current || !map.current) return;
+
+      // Basemap first, so every detection layer draws above it. Added as a source on an
+      // already-loaded style rather than being the style, so failure is survivable.
+      if (!map.current.getSource('basemap')) {
+        map.current.addSource('basemap', BASEMAP_SOURCE);
+        map.current.addLayer({
+          id: 'basemap', type: 'raster', source: 'basemap',
+          paint: { 'raster-opacity': 0.55 },
+        });
+      }
+
       for (const id of ['ahi', 'polar', 'points']) {
         map.current.addSource(id, { type: 'geojson', data: EMPTY });
       }
@@ -123,18 +148,11 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds }) {
       setData(map.current, { ahi, polar, points }, dimmedIds);
     };
 
+    // `styledata` rather than `load`: `load` waits for every source to finish, which
+    // includes basemap tiles that may never arrive. `styledata` fires as soon as the
+    // style exists, which is all that is needed to add sources and layers.
     if (map.current.isStyleLoaded()) addOurLayers();
-    else map.current.once('styledata', addOurLayers);
-
-    // If the external basemap has not finished loading, drop it and keep the data.
-    const fallback = setTimeout(() => {
-      if (!map.current || map.current.isStyleLoaded()) return;
-      console.warn('[map] basemap did not load; falling back to an offline style so '
-                 + 'detections still render');
-      ready.current = false;
-      map.current.setStyle(OFFLINE_STYLE);
-      map.current.once('styledata', addOurLayers);
-    }, BASEMAP_TIMEOUT_MS);
+    else map.current.on('styledata', addOurLayers);
 
     // Surface style or tile failures instead of leaving a silently blank canvas.
     map.current.on('error', (event) => {
@@ -149,7 +167,6 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds }) {
     observer.observe(container.current);
 
     return () => {
-      clearTimeout(fallback);
       observer.disconnect();
       map.current?.remove();
       map.current = null;

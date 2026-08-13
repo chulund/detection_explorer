@@ -15,33 +15,51 @@ not been started.
 **134 backend tests and 8 frontend tests pass.** The backend was verified from a genuine
 clean clone under both profiles: 134 pass with the pipeline, 114 pass and 6 skip without it.
 
-## The one thing that needs a human eye
+## The map: diagnosed, and it is the environment
 
-**The map canvas did not paint during an automated browser session, and I could not
-establish whether that is environmental or a real defect.** Everything around it verified
-correctly, so the uncertainty is narrow but it is real.
+**MapLibre cannot initialise a style inside the Chrome automation context.** This was proved
+rather than assumed: a bare map, constructed directly in a fresh `div`, with an inline style
+containing zero sources and a single background layer, also times out with
+`isStyleLoaded() === false` and raises no error. Nothing about that map touches this
+project's code. MapLibre spawns Web Workers even for a trivial style, and worker creation
+appears to be blocked in the extension sandbox.
 
-What was confirmed working against live data: the API returned 4505 records, the provenance
-strip showed DEA and FIRMS with correct natures and counts, the layer panel reported 505
-polar footprints and 4000 points, and the slider showed per-platform overpass badges
-("Suomi-NPP: 31 min ago", "NOAA-20: 11 min ago") with all six acquisition markers at 04:27,
-04:28, 04:29, 04:47, 04:48 and 04:49. The overpass logic is visibly correct end to end.
+**The application code is sound and should be checked in an ordinary browser window.** Open
+`http://localhost:5173` normally and look. Everything around the canvas was verified against
+live data during the session: 4505 records returned, the provenance strip correct, layer
+counts of 505 polar footprints and 4000 points, and per-platform overpass badges reading
+"Suomi-NPP: 31 min ago" and "NOAA-20: 11 min ago" with all six acquisition markers at 04:27,
+04:28, 04:29, 04:47, 04:48 and 04:49.
 
-What did not: MapLibre reported `isStyleLoaded() === false` indefinitely, with zero rendered
-features. Our three layers were confirmed present in the style and their sources confirmed
-populated, so the data reaches the map. The Carto style JSON, its TileJSON and its sprites
-all returned 200; no vector tile request was observed, though MapLibre fetches those from Web
-Workers where the tooling may not see them. WebGL is available and hardware-backed.
+The investigation was worth doing anyway. It found four real defects, described below, three
+of which would have affected a genuine user.
 
-Three fixes came out of the investigation and are committed, all genuine improvements
-regardless of the cause. Two of them were real bugs that would have bitten a user: the canvas
-never resized after the panels settled, and layers were gated on a `load` event that a slow
-basemap prevents from ever firing.
+**The canvas never resized after the panels settled.** MapLibre sized itself at construction,
+before the provenance strip rendered, and kept a stale canvas. A `ResizeObserver` now drives
+`map.resize()`. The body region also gained a `min-height`, because a wrapped provenance strip
+on a short window had squeezed the map to 209 px.
 
-**Next step: open `http://localhost:5173` in an ordinary browser window and look.** If the
-map draws, the blank canvas was an artifact of the automation environment and Task 15 can
-proceed. If it does not, the offline-style fallback at `MapView.jsx` is the place to start,
-and the question is why `styledata` fires but the style never completes.
+**Layers were gated on the `load` event.** `load` waits for every source to finish, including
+the basemap's tiles. A slow or unreachable CDN therefore meant the detection layers were never
+added at all, and the data this interface exists to show was hidden behind an unrelated third
+party. They are now added on `styledata`.
+
+**A timeout fallback made things worse.** An attempt to swap in an offline style after six
+seconds called `setStyle` while the first style was still in flight, and MapLibre discarded
+both: "Unable to perform style diff: Style is not done loading. Rebuilding the style from
+scratch." Removed, and replaced by the inverted dependency described next.
+
+**The basemap is now an enhancement rather than a foundation.** The map starts with a local
+style that has no sources and therefore loads immediately, and the raster basemap is attached
+afterwards as an ordinary source. If tiles never arrive, detections draw on a plain ground
+instead of nothing drawing at all. Raster rather than vector, too: no sprite sheet, no glyph
+server, no worker-side parsing, so there is far less that can stall. For a deliverable that
+runs on localhost, possibly with no route out, that is the right way round.
+
+One process note. Several confusing readings mid-investigation came from Vite's HMR caching
+broken intermediate modules while edits were part-applied, producing `ReferenceError`s for
+identifiers that no longer existed. Clearing `node_modules/.vite` and restarting resolved it.
+When frontend behaviour stops matching the source, suspect that before suspecting the library.
 
 Plan: `C:\Users\nurfa\.claude\plans\sleepy-squishing-dawn.md`.
 Spec: `RMIT_internal/docs/superpowers/specs/2026-08-13-detection-explorer-design.md`.
