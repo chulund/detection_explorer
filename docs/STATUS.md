@@ -9,30 +9,41 @@ not been started.
 |---|---|---|
 | 0. Prerequisites and spikes | 1–4 | **done** |
 | 1. Backend | 5–13 | **done** |
-| 2. Frontend | 14 done, 15–18 partial or not started | **map rendering unverified — see below** |
-| 3. Delivery | 19–21 | not started |
+| 2. Frontend | 14–17 done, 18 skipped as low priority | **done** |
+| 3. Delivery | 19–21 | **done except the video** |
 
 **134 backend tests and 8 frontend tests pass.** The backend was verified from a genuine
 clean clone under both profiles: 134 pass with the pipeline, 114 pass and 6 skip without it.
 
-## The map: diagnosed, and it is the environment
+## The map: working, after five real bugs
 
-**MapLibre cannot initialise a style inside the Chrome automation context.** This was proved
-rather than assumed: a bare map, constructed directly in a fresh `div`, with an inline style
-containing zero sources and a single background layer, also times out with
-`isStyleLoaded() === false` and raises no error. Nothing about that map touches this
-project's code. MapLibre spawns Web Workers even for a trivial style, and worker creation
-appears to be blocked in the extension sandbox.
+**The map renders.** Verified visually against the production build: OpenStreetMap basemap,
+DEA detections across New South Wales, scale bar, both provenance cards, and the full timeline
+with six overpass markers and six frame buttons.
 
-**The application code is sound and should be checked in an ordinary browser window.** Open
-`http://localhost:5173` normally and look. Everything around the canvas was verified against
-live data during the session: 4505 records returned, the provenance strip correct, layer
-counts of 505 polar footprints and 4000 points, and per-platform overpass badges reading
-"Suomi-NPP: 31 min ago" and "NOAA-20: 11 min ago" with all six acquisition markers at 04:27,
-04:28, 04:29, 04:47, 04:48 and 04:49.
+**A correction, because an earlier version of this document got it wrong.** It concluded the
+blank canvas was environmental, on the strength of a test showing that a bare MapLibre map
+with an empty style also failed. That test was run inside the same page that was serving
+HMR-poisoned modules, so it proved nothing. The cause was in this project's code, twice over,
+and the two defects below are the reason the map appeared blank.
 
-The investigation was worth doing anyway. It found four real defects, described below, three
-of which would have affected a genuine user.
+The moral is worth keeping: a control experiment run inside the broken environment is not a
+control. Testing against the production build, where HMR is out of the picture, settled in one
+step what six rounds of instrumentation could not.
+
+**The map never received its data.** The one that would have shipped an empty map. `ready` was
+a ref, so flipping it did not re-run the effect that pushes GeoJSON into the map's sources, and
+that effect had already bailed out before the layers existed. Meanwhile the layer-creation
+callback had closed over the props as they were at mount, which was empty. React held 505 polar
+footprints and 4000 points while the map's sources held none. `ready` now exists twice on
+purpose: a ref for the map's own callbacks, which fire outside React's render cycle, and a
+state mirror for the data effect to depend on, with a `latest` ref supplying current props.
+
+**The dev server was serving HMR-poisoned modules.** Several confusing readings, including
+`ReferenceError`s for identifiers that no longer existed, came from Vite caching broken
+intermediate modules while edits were part-applied. Clearing `node_modules/.vite` and
+restarting resolved it. When frontend behaviour stops matching the source, suspect this before
+suspecting the library.
 
 **The canvas never resized after the panels settled.** MapLibre sized itself at construction,
 before the provenance strip rendered, and kept a stale canvas. A `ResizeObserver` now drives
@@ -56,10 +67,8 @@ instead of nothing drawing at all. Raster rather than vector, too: no sprite she
 server, no worker-side parsing, so there is far less that can stall. For a deliverable that
 runs on localhost, possibly with no route out, that is the right way round.
 
-One process note. Several confusing readings mid-investigation came from Vite's HMR caching
-broken intermediate modules while edits were part-applied, producing `ReferenceError`s for
-identifiers that no longer existed. Clearing `node_modules/.vite` and restarting resolved it.
-When frontend behaviour stops matching the source, suspect that before suspecting the library.
+`npm run preview` now proxies `/api` as well. `server.proxy` covers only `npm run dev`, and
+serving the production build is the honest way to check behaviour without HMR involved.
 
 Plan: `C:\Users\nurfa\.claude\plans\sleepy-squishing-dawn.md`.
 Spec: `RMIT_internal/docs/superpowers/specs/2026-08-13-detection-explorer-design.md`.
@@ -83,10 +92,13 @@ staged parquet. This is what proves the computation genuinely runs.
 
 ## What was proven, with numbers
 
-**BRIGHT genuinely recomputes.** Frame `20260409042000` ran through the worker end to end —
-staged parquet, subprocess, CLI, parsed output, cached, events emitted — producing **54
-detections in 26.7 s**. Note that figure: the plan assumed 15.5 s from an old NRT log, so a
-six-frame animation is nearer **2.5 minutes than 90 seconds**.
+**BRIGHT genuinely recomputes, through the full HTTP path.** A six-frame run completed in
+**135 seconds and produced 342 detections** (71, 61, 54, 59, 59, 38). A repeat request returned
+`delivery: "cached"` with the same `run_id`, and the SSE endpoint replayed the journal with
+monotonic ids. Frame 04:20 returned 54, matching an earlier direct worker run exactly.
+
+Note the timing: the plan assumed 15.5 s per frame from an old NRT log. The real figure is
+about 27 s, so the animation is **two and a quarter minutes, not ninety seconds**.
 
 **Staging is complete and verified.** 174 of 174 day-slots across all six frames, 593 MB,
 manifest verified clean. Downloads ran at 7.5 s per day-slot, so the whole thing took about 18
