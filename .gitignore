@@ -20,3 +20,4 @@ build/
 .pytest_cache/
 .vite/
 .DS_Store
+frontend/dist/
