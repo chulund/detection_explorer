@@ -5,7 +5,7 @@
 
 ## What was agreed
 
-The interface is built in its own repository, `chulund/detection-explorer`, rather than inside
+The interface is built in its own repository, `chulund/detection_explorer`, rather than inside
 the grant repository. The grant repository keeps the paperwork.
 
 ## What this overrides

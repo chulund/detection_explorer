@@ -9,6 +9,7 @@ data/
 # Anchored with a leading slash. A bare "runs/" matches at any depth and silently
 # swallowed backend/app/runs/, the run-lifecycle source package, for several commits.
 /backend/runs/
+/runs/
 /cache/
 
 node_modules/

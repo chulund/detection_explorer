@@ -1,4 +1,0 @@
-{"id": 1, "kind": "run.state", "payload": {"state": "running"}, "at": "2026-08-13T07:26:59Z"}
-{"id": 2, "kind": "run.frame", "payload": {"index": 1, "of": 2}, "at": "2026-08-13T07:26:59Z"}
-{"id": 3, "kind": "run.frame", "payload": {"index": 2, "of": 2}, "at": "2026-08-13T07:26:59Z"}
-{"id": 4, "kind": "run.done", "payload": {"state": "succeeded"}, "at": "2026-08-13T07:26:59Z"}

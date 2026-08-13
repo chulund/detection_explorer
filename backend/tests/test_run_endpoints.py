@@ -60,11 +60,21 @@ def test_an_unknown_scene_is_a_404(client):
     assert client.post("/api/v2/runs", json={"scene": "nope"}).status_code == 404
 
 
-def test_without_a_pipeline_the_service_says_so_rather_than_failing_obscurely(client,
-                                                                             monkeypatch):
-    """The fixture profile has no BRIGHT checkout; the refusal must explain that."""
+def test_without_a_pipeline_the_service_says_so_rather_than_failing_obscurely(
+        client, monkeypatch, tmp_path):
+    """The fixture profile has no BRIGHT checkout; the refusal must explain that.
+
+    Uses a throwaway store. The real one persists across runs, so a previously
+    succeeded run for this scene would be returned as a cached result and the refusal
+    would never be reached — which is exactly what happened once a genuine run had been
+    executed against the running service.
+    """
+    from app.runs.store import RunStore
+
     monkeypatch.delenv("BRIGHT_PIPELINE_PATH", raising=False)
     monkeypatch.setattr(runs_api, "QUEUE", None)
+    monkeypatch.setattr(runs_api, "STORE", RunStore(tmp_path / "runs.sqlite"))
+
     response = client.post("/api/v2/runs", json={"scene": "april-9-demo"})
     assert response.status_code == 503
     assert "BRIGHT_PIPELINE_PATH" in response.json()["detail"]
