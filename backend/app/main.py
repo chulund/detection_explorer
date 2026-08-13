@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, Query
@@ -9,19 +10,33 @@ from fastapi import FastAPI, HTTPException, Query
 from . import compat
 from .models import FEED_INFO_V2, SCHEMA_VERSION
 from .registry import fetch_scene, provider_status
+from .runs import api as runs_api
 from .scenes import SCENES, get_scene
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Nothing can still be running after a restart, so any run left mid-flight is
+    # marked failed with reason "interrupted". Its journal is preserved, so the
+    # evidence of how far it got survives.
+    interrupted = runs_api.recover_orphans()
+    app.state.interrupted_on_startup = [r.id for r in interrupted]
+    yield
+
 
 app = FastAPI(
     title="RMIT Detection Explorer",
     description=FEED_INFO_V2["disclaimer"],
     openapi_url="/api/openapi.json",
     docs_url="/api/docs",
+    lifespan=lifespan,
 )
 
 # D2's paths, exactly where July left them, plus an identical mirror under /api/v1.
 # Both are served by the same handlers, so they cannot drift apart.
 app.include_router(compat.build_router(), prefix="/api", tags=["d2 (legacy)"])
 app.include_router(compat.build_router(), prefix="/api/v1", tags=["v1 (alias of d2)"])
+app.include_router(runs_api.build_router())
 
 
 @app.get("/api/v2/status", tags=["v2"])
