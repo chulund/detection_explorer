@@ -23,6 +23,12 @@ from app.models import Detection  # noqa: E402
 
 
 @pytest.fixture
+def anyio_backend() -> str:
+    """anyio's pytest plugin drives the async tests; pytest-asyncio is not installed."""
+    return "asyncio"
+
+
+@pytest.fixture
 def client() -> TestClient:
     return TestClient(app)
 
