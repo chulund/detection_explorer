@@ -3,6 +3,7 @@ import { exportUrl, getDetections, getScenes, getStatus } from './api.js';
 import MapView from './map/MapView.jsx';
 import DetailCard from './panels/DetailCard.jsx';
 import ProvenanceStrip from './panels/ProvenanceStrip.jsx';
+import RunPanel from './panels/RunPanel.jsx';
 import { formatAge, overpassMarkers, visibleOverpasses } from './time/overpass.js';
 
 /**
@@ -12,6 +13,11 @@ import { formatAge, overpassMarkers, visibleOverpasses } from './time/overpass.j
  * epoch can survive into another. That is enforced on the server too; doing it here as well
  * means a slow response cannot leave April detections on screen under a live label.
  */
+
+/** "20260409040000" -> "2026-04-09T04:00:00Z" */
+const isoFromStamp = (s) =>
+  `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T` +
+  `${s.slice(8, 10)}:${s.slice(10, 12)}:${s.slice(12, 14) || '00'}Z`;
 
 const LAYERS = [
   { id: 'ahi', label: 'BRIGHT / AHI footprints', hint: '2 km geostationary pixels' },
@@ -29,6 +35,7 @@ export default function App() {
   const [cursor, setCursor] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [runFrames, setRunFrames] = useState([]);
 
   useEffect(() => {
     getScenes().then((b) => setScenes(b.scenes)).catch((e) => setError(e.message));
@@ -67,8 +74,33 @@ export default function App() {
       else if (method === 'polar_reconstructed') polar.features.push(f);
       else points.features.push(f);
     }
+    // BRIGHT output arrives from a run rather than from retrieval, so it is folded in
+    // here. Marked `replay` and `computed`, never `live`: it is a real computation over
+    // real April inputs, which is not the same thing as a current observation.
+    for (const frame of runFrames) {
+      for (const row of frame.detections ?? []) {
+        const lon = Number(row.lon);
+        const lat = Number(row.lat);
+        if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
+        ahi.features.push({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [lon, lat] },
+          properties: {
+            id: `bright:${frame.frame}:${row.x}:${row.y}`,
+            source: 'bright', data_nature: 'replay', computation: 'computed',
+            detected_at: isoFromStamp(frame.frame),
+            platform: 'Himawari-9', instrument: 'AHI', product: 'BRIGHT AHI',
+            algorithm: 'BRIGHT', lat, lon,
+            frp_mw: row.frp ? Number(row.frp) : null,
+            confidence_native: row.confidence, confidence_scheme: 'bright_percent',
+            region: row.region, footprint_method: 'ahi_grid',
+            footprint_status: 'validated', footprint_kind: 'satellite_pixel_footprint',
+          },
+        });
+      }
+    }
     return { ahi, polar, points };
-  }, [features]);
+  }, [features, runFrames]);
 
   // Which polar passes are visible at the cursor, and which are stale.
   const overpassState = useMemo(() => {
@@ -133,6 +165,9 @@ export default function App() {
 
       <div className="body">
         <aside className="sidebar">
+          {sceneId !== 'current' && (
+            <RunPanel scene={sceneId} onFrames={setRunFrames} />
+          )}
           <DetailCard detection={selected} />
           <div className="panel">
             <h2>Layers</h2>

@@ -27,7 +27,11 @@ WFS_NS = {
     "public": "http://sentinel.ga.gov.au/geoserver/public",
 }
 AUS_BBOX = (110.0, -45.0, 155.0, -10.0)
+#: New South Wales and a margin. Fixed scenes are about one fire, and an
+#: Australia-wide query returns thousands of unrelated points around it.
+NSW_BBOX = (140.0, -38.0, 154.0, -28.0)
 TIMEOUT_S = 180
+MAX_FEATURES = 4000
 SOURCE = "dea"
 
 #: DEA writes platform names in its own casing. Normalise to the identifiers the rest of
@@ -139,6 +143,11 @@ class DeaProvider:
 
     def __init__(self, fixture: Path | None = None) -> None:
         self._fixture = fixture
+        #: Set when a response came back at exactly the feature cap, meaning the service
+        #: returned as much as it was willing to and there is very likely more. Silent
+        #: truncation would misrepresent the data, so callers are told.
+        self.last_truncated: bool = False
+        self.last_fallback_reason: str | None = None
 
     def available(self, scene: Scene) -> bool:
         # DEA is a live operational service with a usable archive, so it can honestly
@@ -148,19 +157,41 @@ class DeaProvider:
     def nature_for(self, scene: Scene) -> str:
         return "live" if scene.admits("live") else "static"
 
+    @staticmethod
+    def bbox_for(scene: Scene) -> tuple[float, float, float, float]:
+        """Australia-wide for the rolling scene; NSW for a fixed one.
+
+        A fixed scene is a single fire in New South Wales. Querying the whole continent
+        for it returns thousands of unrelated detections, pushes the response into the
+        service's feature cap, and buries the thing the scene is about.
+        """
+        return AUS_BBOX if scene.admits("live") else NSW_BBOX
+
     def fetch(self, scene: Scene, window: tuple[datetime, datetime] | None = None
               ) -> list[Detection]:
         start, end = window or scene.window()
         published_at = end.strftime("%Y-%m-%dT%H:%M:%SZ")
         window_dict = {"start": start.strftime("%Y-%m-%dT%H:%M:%SZ"), "end": published_at}
 
+        self.last_truncated = False
+        self.last_fallback_reason = None
+
         if self._fixture is not None:
             xml_bytes = self._fixture.read_bytes()
         else:
-            body = build_wfs_body(start, end).encode("utf-8")
+            body = build_wfs_body(start, end, self.bbox_for(scene),
+                                  count=MAX_FEATURES).encode("utf-8")
             request = Request(WFS_URL, data=body, headers={"Content-Type": "text/xml"})
             with urlopen(request, timeout=TIMEOUT_S) as response:
                 xml_bytes = response.read()
 
-        return parse_wfs_xml(xml_bytes, published_at=published_at,
-                             data_nature=self.nature_for(scene), window=window_dict)
+        records = parse_wfs_xml(xml_bytes, published_at=published_at,
+                                data_nature=self.nature_for(scene), window=window_dict)
+
+        if len(records) >= MAX_FEATURES:
+            self.last_truncated = True
+            self.last_fallback_reason = (
+                f"the service returned its maximum of {MAX_FEATURES} features, so this "
+                f"is a partial result"
+            )
+        return records

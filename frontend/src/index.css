@@ -113,3 +113,13 @@ body { margin: 0; background: var(--bg); }
   position: absolute; z-index: 5; margin: 0.75rem; padding: 0.4rem 0.7rem;
   background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
 }
+
+.small { font-size: 0.8rem; }
+.run-actions { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; margin: 0.5rem 0; }
+.run-actions button:disabled { opacity: 0.5; cursor: default; }
+.frames { list-style: none; margin: 0.5rem 0 0; padding: 0; font-size: 0.82rem; }
+.frames li {
+  display: flex; gap: 0.5rem; align-items: center; padding: 0.2rem 0;
+  border-top: 1px solid var(--line);
+}
+.frame-ts { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 3.2rem; }

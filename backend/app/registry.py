@@ -88,6 +88,9 @@ def fetch_scene(scene: Scene, sources: list[str] | None = None) -> dict:
             "count": len(kept),
             "dropped_by_scene": len(fetched) - len(kept),
             "used_fixture": getattr(provider, "last_used_fixture", False),
+            # A partial result reported as a complete one is a quiet lie, so the
+            # response says when a source hit its own limit.
+            "truncated": getattr(provider, "last_truncated", False),
             "reason": getattr(provider, "last_fallback_reason", None),
         }
         records += kept
