@@ -1,9 +1,9 @@
 # Scene selection for the April 2026 demonstration
 
 **Date:** 2026-08-13
-**Status:** shortlist decided; FIRMS availability gate outstanding
-**Script:** `scripts/screen_scene_candidates.py`
-**Raw results:** `scene_screening.json`
+**Status:** **committed.** All four gates passed, plus FIRMS availability.
+**Scripts:** `scripts/screen_scene_candidates.py`, `scripts/check_firms_availability.py`
+**Raw results:** `scene_screening.json`, `fixtures/firms_*_20260409.csv`
 
 ## Recommendation
 
@@ -89,11 +89,45 @@ truncated.
 Gate 4 walks the staged parquet tree. The window is the same time-of-day slot on each of the
 previous 28 days, per `run_parquet_detection.py:228`.
 
-## Outstanding
+## FIRMS availability: gate closed, 2026-08-13
 
-The FIRMS availability gate is unchecked. It requires a MAP_KEY, which does not yet exist, and
-confirming April 2026 coverage for `MODIS_SP`, `VIIRS_SNPP_SP` and `VIIRS_NOAA20_SP` through
-`/api/data_availability/`. It closes at Task 4 Step 0, before any download, so that no staging
-effort is spent against an interval FIRMS cannot actually serve.
+Checked before any staging, as planned. All three Standard Processing products hold the scene
+date:
 
-This record is amended, not rewritten, when that gate closes.
+| Product | FIRMS holds | Records on 2026-04-09 | In the 04:00Z hour |
+|---|---|---|---|
+| `VIIRS_SNPP_SP` | 2012-01-20 .. 2026-04-27 | 386 | **293** (Suomi-NPP, 04:27–04:29) |
+| `VIIRS_NOAA20_SP` | 2018-04-01 .. 2026-05-31 | 582 | **212** (NOAA-20, 04:47–04:49) |
+| `MODIS_SP` | 2000-11-01 .. 2026-04-30 | 66 | 0 |
+
+505 Standard Processing records inside the hour. `VIIRS_NOAA21_SP` is confirmed absent from
+the availability listing, which is what disqualified 03:00Z above.
+
+MODIS contributes nothing to this hour, matching the DEA screen, so the scene is a two-VIIRS
+comparison. That is no loss: the two passes are on different platforms twenty minutes apart,
+which is exactly what the per-platform overpass retention needs to demonstrate.
+
+Every row carries `scan`, `track`, `satellite` and `daynight`, so `polar_footprint` can
+reconstruct footprints directly. An end-to-end check on a real row produced a valid polygon of
+150,242 m², correct for a near-nadir VIIRS 375 m pixel. Responses are saved as fixtures for
+Task 7.
+
+### Two consequences for the interface
+
+**Confidence is categorical, not numeric.** VIIRS SP rows carry `confidence` values like `n`
+for nominal. D2's `confidence: float | None` cannot hold that. The schema's split into
+`confidence` (legacy float), `confidence_native` and `confidence_scheme` is therefore load
+bearing rather than defensive: coercing `n` to a number would invent information.
+
+**The side ambiguity applies to nearly every detection here, not to a few.** Measured across
+all 505 records in the hour:
+
+| Platform | n | Scan | Latitude | Side IoU (min / median / max) | Below 0.95 |
+|---|---|---|---|---|---|
+| Suomi-NPP | 293 | 0.32–0.57 km | −37.0 .. −28.2 | 0.842 / 0.906 / 0.962 | 291 / 293 |
+| NOAA-20 | 212 | 0.35–0.75 km | −36.1 .. −28.5 | 0.814 / 0.831 / 0.845 | 212 / 212 |
+
+**503 of 505 fall below the threshold.** Scan angles here are modest, close to nadir, so it is
+latitude rather than swath position driving this. The two-candidate rendering is the normal
+case for this scene, not an exception, and Task 16 should treat its explanation as a standing
+legend item rather than a rare per-feature warning.
