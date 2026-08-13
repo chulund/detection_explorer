@@ -17,10 +17,19 @@ from __future__ import annotations
 import pytest
 from pyproj import Geod
 
+from app.footprints.ahi import available as ahi_available
 from app.footprints.ahi import grid_lookup, pixel_footprint
 from app.footprints.polar import polar_footprint_for
 
 GEOD = Geod(ellps="WGS84")
+
+#: The AHI pixel grid ships with the BRIGHT pipeline, which is optional. On a machine
+#: without it these tests skip rather than fail, because their absence is a supported
+#: configuration (the fixture profile) and not a defect.
+needs_ahi_grid = pytest.mark.skipif(
+    not ahi_available(),
+    reason="AHI pixel grid unavailable; set BRIGHT_PIPELINE_PATH for the research profile",
+)
 
 # A real detection from the staged scene: x,y join x_subset,y_subset in the pixel grid.
 SAMPLE_XY = (671, 287)
@@ -31,11 +40,13 @@ SNPP_ROW = {"lat": -37.02728, "lon": 141.11269, "scan": 0.4, "track": 0.37,
 
 # ------------------------------------------------------------------ AHI
 
+@needs_ahi_grid
 def test_grid_lookup_is_keyed_by_subset_coordinates():
     lookup = grid_lookup()
     assert SAMPLE_XY in lookup
 
 
+@needs_ahi_grid
 def test_reprojected_centroid_matches_the_grids_own_lonlat():
     """Proves the CRS was derived correctly, without hardcoding projection constants."""
     lookup = grid_lookup()
@@ -45,12 +56,14 @@ def test_reprojected_centroid_matches_the_grids_own_lonlat():
     assert abs(poly.centroid.y - entry["lat"]) < 1e-3
 
 
+@needs_ahi_grid
 def test_ahi_pixel_is_about_four_square_kilometres():
     """The sensor grid is 2 km at nadir, so a pixel is roughly 4 km2."""
     area, _ = GEOD.geometry_area_perimeter(pixel_footprint(*SAMPLE_XY))
     assert 2.0e6 < abs(area) < 8.0e6
 
 
+@needs_ahi_grid
 def test_ahi_footprint_is_a_closed_valid_ring():
     poly = pixel_footprint(*SAMPLE_XY)
     assert poly.is_valid
@@ -82,6 +95,7 @@ def test_both_candidates_are_valid():
     assert all(g.is_valid and g.area > 0 for g in geometry.geoms)
 
 
+@needs_ahi_grid
 def test_viirs_pixel_is_far_smaller_than_an_ahi_pixel():
     """The comparison the whole interface exists to make."""
     geometry, _ = polar_footprint_for(SNPP_ROW)
@@ -127,6 +141,7 @@ def test_attached_record_carries_the_whole_provenance_block(make_detection):
     assert attached.footprint_model_version
 
 
+@needs_ahi_grid
 def test_ahi_attachment_is_validated_not_experimental(make_detection):
     from app.footprints.ahi import attach_ahi_footprint
 

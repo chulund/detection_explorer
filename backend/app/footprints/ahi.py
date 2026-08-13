@@ -40,6 +40,17 @@ def pipeline_root() -> Path:
     return Path(os.environ.get("BRIGHT_PIPELINE_PATH") or DEFAULT_PIPELINE)
 
 
+def available() -> bool:
+    """Whether the AHI pixel grid and sensor file are actually reachable.
+
+    They ship with the BRIGHT pipeline, which is an optional dependency, so the
+    fixture profile runs without them. AHI footprints are simply absent there, and
+    the interface reports that rather than failing.
+    """
+    root = pipeline_root()
+    return (root / GRID_RELATIVE).exists() and (root / SENSOR_RELATIVE).exists()
+
+
 @lru_cache(maxsize=1)
 def geostationary_proj4() -> str:
     """Build the projection from the sensor file's CF attributes.
@@ -71,7 +82,13 @@ def _to_wgs84():
 
 @lru_cache(maxsize=1)
 def grid_lookup() -> dict[tuple[int, int], dict]:
-    """(x_subset, y_subset) -> {wkt, lat, lon} for every NSW Himawari pixel."""
+    """(x_subset, y_subset) -> {wkt, lat, lon} for every NSW Himawari pixel.
+
+    Empty when the pipeline is not installed, so callers degrade rather than raise.
+    """
+    if not available():
+        return {}
+
     import pandas as pd
 
     frame = pd.read_parquet(pipeline_root() / GRID_RELATIVE)
