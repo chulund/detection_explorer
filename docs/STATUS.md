@@ -1,7 +1,8 @@
 # Detection Explorer — status, 13 August 2026
 
-Written for someone picking this up cold. The backend is complete and tested; the frontend has
-not been started.
+Written for someone picking this up cold. Backend and frontend are both complete and tested.
+Everything in the plan is built. Two items remain, and both need a person: the walkthrough
+video, and Karin's localhost approval quoted in `decisions/DEV-01-localhost.md`.
 
 ## Where it stands
 
@@ -9,11 +10,11 @@ not been started.
 |---|---|---|
 | 0. Prerequisites and spikes | 1–4 | **done** |
 | 1. Backend | 5–13 | **done** |
-| 2. Frontend | 14–17 done, 18 skipped as low priority | **done** |
+| 2. Frontend | 14–18 | **done** |
 | 3. Delivery | 19–21 | **done except the video** |
 
-**134 backend tests and 8 frontend tests pass.** The backend was verified from a genuine
-clean clone under both profiles: 134 pass with the pipeline, 114 pass and 6 skip without it.
+**139 backend tests and 8 frontend tests pass**, and the backend was additionally verified
+from a genuine clean clone under both run profiles.
 
 ## The map: working, after five real bugs
 
@@ -119,6 +120,18 @@ an exception. See `polar_footprint/report/20260813_side_divergence.md`.
 against a 2 km pixel — but differs in spatial extent, carries a systematic sub-pixel offset
 probably from JAXA-versus-NCI catalogues, and has no recorded provenance. Not promoted. See
 `decisions/reference-baseline.md`.
+
+**Ten contextual layers, every endpoint verified before being written down.** DEA fuel
+moisture, land cover, fractional cover and water observations; NPWS fire history; NSW local
+government areas and reserves; four OpenWeatherMap layers. Two things bit during that check
+and are recorded in `map/contextLayers.js`: the NSW ArcGIS services reject a request without a
+`styles` parameter and return XML rather than an image, and their boundary layers are numbered
+rather than named, so the LGA layer had to be identified through the ArcGIS REST endpoint.
+
+**DEA is no longer silently truncated.** A response arriving at the service's feature cap is
+reported as partial rather than presented as complete, and fixed scenes query a New South
+Wales box instead of the continent. That took the demo scene from 4000 records, exactly the
+cap, to 1785 genuinely inside the area of interest.
 
 ## Decisions a reader might otherwise question
 
