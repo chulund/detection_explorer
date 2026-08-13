@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import os
 from datetime import datetime, timezone
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 
 from . import compat
 from .models import FEED_INFO_V2, SCHEMA_VERSION
-from .scenes import SCENES
+from .registry import fetch_scene, provider_status
+from .scenes import SCENES, get_scene
 
 app = FastAPI(
     title="RMIT Detection Explorer",
@@ -24,43 +24,14 @@ app.include_router(compat.build_router(), prefix="/api", tags=["d2 (legacy)"])
 app.include_router(compat.build_router(), prefix="/api/v1", tags=["v1 (alias of d2)"])
 
 
-def _provider_availability() -> dict[str, dict]:
-    """What the service can actually do right now, and why not where it cannot.
-
-    Reported here rather than on /api/status, which is a D2 route and must keep its
-    D2 body. Task 6 to 8 replace these stubs with the providers themselves.
-    """
-    has_key = bool(os.environ.get("FIRMS_MAP_KEY"))
-    pipeline = os.environ.get("BRIGHT_PIPELINE_PATH")
-    return {
-        "dea": {
-            "available": True,
-            "reason": None,
-            "footprints": False,
-            "note": "DEA's WFS carries no scan or track column, so no footprints.",
-        },
-        "firms": {
-            "available": True,
-            "reason": None if has_key else "no FIRMS_MAP_KEY; fixtures only",
-            "footprints": True,
-            "note": "Fixtures serve historical scenes only; never the current scene.",
-        },
-        "bright": {
-            "available": bool(pipeline),
-            "reason": None if pipeline else "BRIGHT_PIPELINE_PATH unset",
-            "footprints": True,
-            "note": "Optional. Absent it, the interface runs on DEA and FIRMS alone.",
-        },
-    }
-
-
 @app.get("/api/v2/status", tags=["v2"])
 def status_v2() -> dict:
+    """Provider availability lives here, never on /api/status, which is a D2 route."""
     return {
         "schema_version": SCHEMA_VERSION,
         "feed_info": FEED_INFO_V2,
         "server_time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "providers": _provider_availability(),
+        "providers": provider_status(),
         "scenes": sorted(SCENES),
     }
 
@@ -69,3 +40,51 @@ def status_v2() -> dict:
 def scenes_v2() -> dict:
     return {"schema_version": SCHEMA_VERSION,
             "scenes": [scene.to_dict() for scene in SCENES.values()]}
+
+
+@app.get("/api/v2/detections", tags=["v2"])
+def detections_v2(
+    scene: str = Query(..., description="Scene id; required, never inferred"),
+    sources: str | None = Query(None, description="Comma-separated provider names"),
+    format: str = Query("json", pattern="^(json|geojson)$"),
+) -> dict:
+    """Detections for one scene.
+
+    `scene` is required rather than defaulted. A default would let a caller retrieve
+    records without stating which epoch they belong to, which is the mistake scenes
+    exist to prevent.
+    """
+    try:
+        resolved = get_scene(scene)
+    except KeyError as exc:
+        raise HTTPException(404, str(exc)) from None
+
+    wanted = [s.strip() for s in sources.split(",")] if sources else None
+    result = fetch_scene(resolved, wanted)
+    records = result["detections"]
+    start, end = resolved.window()
+
+    envelope = {
+        "schema_version": SCHEMA_VERSION,
+        "scene": resolved.to_dict(),
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "sources": result["sources"],
+        "count": len(records),
+    }
+
+    if format == "geojson":
+        envelope["type"] = "FeatureCollection"
+        envelope["features"] = [_as_feature(r) for r in records]
+        return envelope
+
+    envelope["detections"] = [r.to_dict() for r in records]
+    return envelope
+
+
+def _as_feature(record) -> dict:
+    """Footprint as the geometry where one exists, falling back to the point."""
+    body = record.to_dict()
+    geometry = body.pop("footprint", None) or {
+        "type": "Point", "coordinates": [record.lon, record.lat]
+    }
+    return {"type": "Feature", "geometry": geometry, "properties": body}
