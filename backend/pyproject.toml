@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "detection-explorer-backend"
+version = "0.1.0"
+description = "API for the Detection Explorer: scenes, providers, footprints and BRIGHT runs"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    # SSE transport. Native fastapi.sse exists in current FastAPI but is absent from
+    # 0.133.1, the version in the `bright` environment, so the dependency is explicit.
+    "sse-starlette>=3.4",
+    "shapely>=2.0",
+    "pyproj>=3.6",
+    "pandas>=2.0",
+    "pyarrow>=14.0",
+]
+
+[project.optional-dependencies]
+# Polar footprint reconstruction. Optional: without it the polar layers carry points
+# and no geometry, and the fixture profile still starts.
+polar = ["polar-footprint"]
+dev = ["pytest>=8.0", "httpx>=0.27"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
