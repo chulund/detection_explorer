@@ -9,11 +9,39 @@ not been started.
 |---|---|---|
 | 0. Prerequisites and spikes | 1–4 | **done** |
 | 1. Backend | 5–13 | **done** |
-| 2. Frontend | 14–18 | not started |
+| 2. Frontend | 14 done, 15–18 partial or not started | **map rendering unverified — see below** |
 | 3. Delivery | 19–21 | not started |
 
-**134 tests pass** under the research profile; 114 pass and 6 skip under the fixture profile.
-Both were verified from a genuine clean clone.
+**134 backend tests and 8 frontend tests pass.** The backend was verified from a genuine
+clean clone under both profiles: 134 pass with the pipeline, 114 pass and 6 skip without it.
+
+## The one thing that needs a human eye
+
+**The map canvas did not paint during an automated browser session, and I could not
+establish whether that is environmental or a real defect.** Everything around it verified
+correctly, so the uncertainty is narrow but it is real.
+
+What was confirmed working against live data: the API returned 4505 records, the provenance
+strip showed DEA and FIRMS with correct natures and counts, the layer panel reported 505
+polar footprints and 4000 points, and the slider showed per-platform overpass badges
+("Suomi-NPP: 31 min ago", "NOAA-20: 11 min ago") with all six acquisition markers at 04:27,
+04:28, 04:29, 04:47, 04:48 and 04:49. The overpass logic is visibly correct end to end.
+
+What did not: MapLibre reported `isStyleLoaded() === false` indefinitely, with zero rendered
+features. Our three layers were confirmed present in the style and their sources confirmed
+populated, so the data reaches the map. The Carto style JSON, its TileJSON and its sprites
+all returned 200; no vector tile request was observed, though MapLibre fetches those from Web
+Workers where the tooling may not see them. WebGL is available and hardware-backed.
+
+Three fixes came out of the investigation and are committed, all genuine improvements
+regardless of the cause. Two of them were real bugs that would have bitten a user: the canvas
+never resized after the panels settled, and layers were gated on a `load` event that a slow
+basemap prevents from ever firing.
+
+**Next step: open `http://localhost:5173` in an ordinary browser window and look.** If the
+map draws, the blank canvas was an artifact of the automation environment and Task 15 can
+proceed. If it does not, the offline-style fallback at `MapView.jsx` is the place to start,
+and the question is why `styledata` fires but the style never completes.
 
 Plan: `C:\Users\nurfa\.claude\plans\sleepy-squishing-dawn.md`.
 Spec: `RMIT_internal/docs/superpowers/specs/2026-08-13-detection-explorer-design.md`.
@@ -95,13 +123,24 @@ machine happens to hold the BRIGHT pipeline at the default path — precisely th
 a clean-clone check should catch. `ahi.py` now reports availability and returns an empty
 lookup, and the AHI tests skip rather than fail when the pipeline is absent.
 
+## A known data defect, not yet fixed
+
+**DEA is being silently truncated.** A live call for the demo scene returned exactly 4000
+records, which is the WFS `count` cap in `providers/dea.py`. Silent truncation is precisely
+the kind of quiet dishonesty this project guards against everywhere else, so it should not
+ship as it stands.
+
+Two things to decide. The provider should detect `len(records) == count` and report
+`truncated: true` in the source notes, so the interface can say so. And the demo scene
+probably wants a New South Wales bounding box rather than the Australia-wide `AUS_BBOX`,
+which is what pushes the count over the cap in the first place; the scene is about one fire
+in NSW, and 4000 Australia-wide points are noise around it.
+
 ## Next
 
-Task 14 starts the frontend: Vite plus React plus MapLibre, no Mapbox token. Before writing
-map code, confirm a keyless basemap style actually loads; the plan assumes one exists but does
-not name a verified URL.
+Task 15 continues the frontend, once the map question above is settled.
 
-Three things remain outstanding and none of them block Task 14.
+Four things remain outstanding.
 
 - The 26.7 s per frame figure should replace the plan's 15.5 s wherever the animation budget
   is discussed.
