@@ -1,0 +1,92 @@
+[
+  {
+    "day": "20260409",
+    "hour": "05",
+    "bright_features": 214,
+    "polar_records": 0,
+    "polar_platforms": {},
+    "nearest_km": null,
+    "ahi_frames_complete": 0,
+    "ahi_frames_total": 6
+  },
+  {
+    "day": "20260409",
+    "hour": "04",
+    "bright_features": 144,
+    "polar_records": 1618,
+    "polar_platforms": {
+      "SUOMI NPP/VIIRS": 1074,
+      "NOAA 20/VIIRS": 544
+    },
+    "nearest_km": 0.1,
+    "ahi_frames_complete": 0,
+    "ahi_frames_total": 6
+  },
+  {
+    "day": "20260409",
+    "hour": "07",
+    "bright_features": 142,
+    "polar_records": 0,
+    "polar_platforms": {},
+    "nearest_km": null,
+    "ahi_frames_complete": 0,
+    "ahi_frames_total": 6
+  },
+  {
+    "day": "20260409",
+    "hour": "06",
+    "bright_features": 120,
+    "polar_records": 55,
+    "polar_platforms": {
+      "AQUA/MODIS": 55
+    },
+    "nearest_km": 0.1,
+    "ahi_frames_complete": 0,
+    "ahi_frames_total": 6
+  },
+  {
+    "day": "20260409",
+    "hour": "03",
+    "bright_features": 98,
+    "polar_records": 1835,
+    "polar_platforms": {
+      "NOAA 20/VIIRS": 682,
+      "NOAA 21/VIIRS": 1153
+    },
+    "nearest_km": 0.1,
+    "ahi_frames_complete": 0,
+    "ahi_frames_total": 6
+  },
+  {
+    "day": "20260409",
+    "hour": "08",
+    "bright_features": 94,
+    "polar_records": 0,
+    "polar_platforms": {},
+    "nearest_km": null,
+    "ahi_frames_complete": 0,
+    "ahi_frames_total": 6
+  },
+  {
+    "day": "20260409",
+    "hour": "02",
+    "bright_features": 80,
+    "polar_records": 37,
+    "polar_platforms": {
+      "SUOMI NPP/VIIRS": 37
+    },
+    "nearest_km": 86.7,
+    "ahi_frames_complete": 0,
+    "ahi_frames_total": 6
+  },
+  {
+    "day": "20260409",
+    "hour": "01",
+    "bright_features": 71,
+    "polar_records": 0,
+    "polar_platforms": {},
+    "nearest_km": null,
+    "ahi_frames_complete": 0,
+    "ahi_frames_total": 6
+  }
+]

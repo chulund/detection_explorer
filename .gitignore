@@ -1,0 +1,20 @@
+# Staged Himawari AHI parquet. Large and re-downloadable; the tracked manifest in
+# manifests/ carries the checksums that make a staging run verifiable.
+data/
+
+# Secrets: FIRMS_MAP_KEY, OPENWEATHER_API_KEY, BRIGHT_PIPELINE_PATH.
+.env
+
+# Run journals and cached detection frames.
+runs/
+cache/
+
+node_modules/
+dist/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+.pytest_cache/
+.vite/
+.DS_Store
