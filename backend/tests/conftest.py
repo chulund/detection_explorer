@@ -7,6 +7,7 @@ suite never depends on FIRMS, DEA or a MAP_KEY being reachable.
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -16,6 +17,12 @@ from fastapi.testclient import TestClient
 BACKEND = Path(__file__).resolve().parents[1]
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
+
+# Before any `app` import, because the package reads `.env` in its initialiser. A real
+# `.env` carries a FIRMS key, and a key sends the provider to the network rather than to
+# the committed fixtures, which would make this suite depend on credentials and a route
+# out. Profiles are built with monkeypatch instead.
+os.environ["DETECTION_EXPLORER_SKIP_ENV"] = "1"
 
 from app.compat import LEGACY_STORE, LegacyDetection  # noqa: E402
 from app.main import app  # noqa: E402

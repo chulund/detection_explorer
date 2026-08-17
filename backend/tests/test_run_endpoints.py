@@ -100,6 +100,57 @@ def test_cancelling_a_finished_run_is_a_noop(client, finished_run):
     assert body["state"] == "succeeded"
 
 
+@pytest.fixture
+def run_with_cached_frame(finished_run):
+    """A finished run whose first frame has a cache file, as a real run leaves behind."""
+    directory = runs_api.STATE_ROOT / "frames"
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"{finished_run.frame_keys[0]}.json"
+    path.write_text(json.dumps({
+        "frame": "20260409040000",
+        "frame_key": finished_run.frame_keys[0],
+        "computed_at": "2026-04-09T05:00:00Z",
+        # x,y join the pixel grid; 671,287 is a real pixel from the staged scene.
+        "detections": [{"region": "nsw", "x": "671", "y": "287",
+                        "lon": "148.0", "lat": "-32.0", "frp": "12.5",
+                        "confidence": "80", "period": "day",
+                        "dt": "20260409040000"}],
+    }), encoding="utf-8")
+    yield finished_run
+    path.unlink(missing_ok=True)
+
+
+def test_run_detections_carry_their_ahi_footprint(client, run_with_cached_frame):
+    """Without this the BRIGHT layer has nothing with area to draw, only bare points.
+
+    Skips rather than fails without the pixel grid: the fixture profile has no BRIGHT
+    checkout, and that is a supported configuration.
+    """
+    from app.footprints.ahi import available as ahi_available
+
+    if not ahi_available():
+        pytest.skip("AHI pixel grid unavailable; research profile only")
+
+    body = client.get(f"/api/v2/runs/{run_with_cached_frame.id}").json()
+    [row] = body["detections"][0]["detections"]
+    assert row["footprint"]["type"] == "Polygon"
+    assert row["footprint_method"] == "ahi_grid"
+    assert row["footprint_status"] == "validated"
+
+
+def test_a_run_without_the_grid_still_returns_its_detections(
+        client, run_with_cached_frame, monkeypatch):
+    """Degrade, do not raise. The rows are real output even when the grid is absent."""
+    from app.footprints import ahi
+
+    monkeypatch.setattr(ahi, "pixel_footprint", lambda x, y: None)
+
+    body = client.get(f"/api/v2/runs/{run_with_cached_frame.id}").json()
+    [row] = body["detections"][0]["detections"]
+    assert row["footprint"] is None
+    assert row["lat"] == "-32.0"
+
+
 # ------------------------------------------------------------------ streaming
 
 def test_the_stream_replays_the_whole_journal_by_default(client, finished_run):

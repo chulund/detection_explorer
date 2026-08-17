@@ -150,3 +150,55 @@ def test_ahi_attachment_is_validated_not_experimental(make_detection):
     assert attached.footprint_method == "ahi_grid"
     assert attached.footprint_status == "validated"
     assert attached.footprint_side is None
+
+
+# ------------------------------------------------------------------ BRIGHT run rows
+
+# A BRIGHT run does not produce `Detection` records; it produces CSV rows, and those are
+# what reach the browser. They carry the same `x`,`y` join key, so they can carry the same
+# exact polygon, and without it the interface has no AHI footprints to draw at all.
+BRIGHT_ROW = {"region": "nsw", "x": str(SAMPLE_XY[0]), "y": str(SAMPLE_XY[1]),
+              "lon": "148.0", "lat": "-32.0", "frp": "12.5", "confidence": "80",
+              "period": "day", "dt": "20260409040000"}
+
+
+@needs_ahi_grid
+def test_bright_rows_gain_their_exact_pixel_polygon():
+    from app.footprints.ahi import attach_row_footprints
+
+    [row] = attach_row_footprints([dict(BRIGHT_ROW)])
+    assert row["footprint"]["type"] == "Polygon"
+    assert row["footprint_method"] == "ahi_grid"
+    assert row["footprint_status"] == "validated"
+    assert row["footprint_kind"] == "satellite_pixel_footprint"
+
+
+@needs_ahi_grid
+def test_the_row_polygon_is_the_same_one_the_grid_holds():
+    """A row's footprint must be the pixel's, not something derived from its lat/lon."""
+    from app.footprints.ahi import attach_row_footprints
+
+    [row] = attach_row_footprints([dict(BRIGHT_ROW)])
+    ring = row["footprint"]["coordinates"][0]
+    expected = list(pixel_footprint(*SAMPLE_XY).exterior.coords)
+    assert len(ring) == len(expected)
+    assert ring[0] == pytest.approx(expected[0], abs=1e-9)
+
+
+def test_a_row_off_the_grid_is_left_bare_rather_than_guessed():
+    """Absent is absent. Inventing a polygon would shift a detection silently."""
+    from app.footprints.ahi import attach_row_footprints
+
+    [row] = attach_row_footprints([{**BRIGHT_ROW, "x": "999999", "y": "999999"}])
+    assert row["footprint"] is None
+    assert row["footprint_method"] is None
+    assert row["lat"] == BRIGHT_ROW["lat"]  # the rest of the row survives untouched
+
+
+def test_rows_without_a_pixel_index_are_passed_through():
+    """Older cached runs predate the join and must not crash the endpoint."""
+    from app.footprints.ahi import attach_row_footprints
+
+    [row] = attach_row_footprints([{"lon": "148.0", "lat": "-32.0"}])
+    assert row["footprint"] is None
+    assert row["footprint_method"] is None

@@ -39,6 +39,26 @@ to the research team, and no release decision has been made. Do not redistribute
 
 ## Running it
 
-To be written once the backend and frontend land. Two profiles are planned: a fixture profile
-that runs from a clean clone with no credentials and no staged data, and a research profile
-that additionally recomputes BRIGHT from staged inputs.
+Two profiles. The **fixture profile** is a clean clone with no credentials and no staged
+data: both scenes serve from committed fixtures, and `/api/v2/status` reports which
+providers are unavailable and why. The **research profile** adds a `.env` and recomputes
+BRIGHT from staged inputs.
+
+Configuration is a `.env` at the repository root, read at startup. Copy `.env.example` and
+fill in what you have; every key in it is optional, and an absent key degrades a feature
+rather than stopping the service. A variable already exported in the shell wins over the
+file.
+
+```powershell
+cd backend
+& "C:\Users\nurfa\.conda\envs\bright\python.exe" -m uvicorn app.main:app --reload --port 8000
+# Swagger at http://localhost:8000/api/docs
+
+cd ../frontend
+npm install && npm run dev      # http://localhost:5173, proxies /api to port 8000
+```
+
+`BRIGHT_PIPELINE_PATH` is what separates the profiles. Without it the BRIGHT provider
+reports unavailable, a run is refused with 503, and the AHI footprint layer stays empty:
+the AHI pixel polygons come from the sensor grid that ships with the pipeline, joined on
+the `x`,`y` a run emits, and DEA's hotspot feed carries no pixel index to join on.

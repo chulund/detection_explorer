@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { exportUrl, getDetections, getScenes, getStatus } from './api.js';
 import MapView from './map/MapView.jsx';
 import { availableContextLayers, groupedContextLayers } from './map/contextLayers.js';
+import { brightFeatures, isoFromStamp } from './map/features.js';
 import DetailCard from './panels/DetailCard.jsx';
 import LayerPanel from './panels/LayerPanel.jsx';
 import ProvenanceStrip from './panels/ProvenanceStrip.jsx';
@@ -16,14 +17,11 @@ import { formatAge, overpassMarkers, visibleOverpasses } from './time/overpass.j
  * means a slow response cannot leave April detections on screen under a live label.
  */
 
-/** "20260409040000" -> "2026-04-09T04:00:00Z" */
-const isoFromStamp = (s) =>
-  `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T` +
-  `${s.slice(8, 10)}:${s.slice(10, 12)}:${s.slice(12, 14) || '00'}Z`;
-
 const LAYERS = [
-  { id: 'ahi', label: 'BRIGHT / AHI footprints', hint: '2 km geostationary pixels' },
-  { id: 'polar', label: 'VIIRS / MODIS footprints', hint: '375 m polar pixels, two candidates each' },
+  { id: 'ahi', label: 'BRIGHT / AHI footprints',
+    hint: '2 km geostationary pixels, from a run. A marker until you zoom past the size of a pixel.' },
+  { id: 'polar', label: 'VIIRS / MODIS footprints',
+    hint: '375 m polar pixels, two candidates each. A marker until you zoom past the size of a pixel.' },
   { id: 'points', label: 'Points without geometry', hint: 'DEA hotspots carry no scan geometry' },
 ];
 
@@ -85,30 +83,8 @@ export default function App() {
       else points.features.push(f);
     }
     // BRIGHT output arrives from a run rather than from retrieval, so it is folded in
-    // here. Marked `replay` and `computed`, never `live`: it is a real computation over
-    // real April inputs, which is not the same thing as a current observation.
-    for (const frame of runFrames) {
-      for (const row of frame.detections ?? []) {
-        const lon = Number(row.lon);
-        const lat = Number(row.lat);
-        if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
-        ahi.features.push({
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [lon, lat] },
-          properties: {
-            id: `bright:${frame.frame}:${row.x}:${row.y}`,
-            source: 'bright', data_nature: 'replay', computation: 'computed',
-            detected_at: isoFromStamp(frame.frame),
-            platform: 'Himawari-9', instrument: 'AHI', product: 'BRIGHT AHI',
-            algorithm: 'BRIGHT', lat, lon,
-            frp_mw: row.frp ? Number(row.frp) : null,
-            confidence_native: row.confidence, confidence_scheme: 'bright_percent',
-            region: row.region, footprint_method: 'ahi_grid',
-            footprint_status: 'validated', footprint_kind: 'satellite_pixel_footprint',
-          },
-        });
-      }
-    }
+    // here, carrying the exact pixel polygons the backend joined from the sensor grid.
+    ahi.features.push(...brightFeatures(runFrames));
     return { ahi, polar, points };
   }, [features, runFrames]);
 
@@ -199,6 +175,7 @@ export default function App() {
             ahi={shown.ahi}
             polar={shown.polar}
             points={shown.points}
+            fitKey={sceneId}
             dimmedIds={overpassState.dimmed}
             contextLayers={contextLayers}
             contextEnabled={contextEnabled}
@@ -228,7 +205,7 @@ export default function App() {
             </button>
           ))}
           {scene?.frames?.map((f) => {
-            const iso = `${f.slice(0, 4)}-${f.slice(4, 6)}-${f.slice(6, 8)}T${f.slice(8, 10)}:${f.slice(10, 12)}:00Z`;
+            const iso = isoFromStamp(f);
             return (
               <button key={f} className="chip chip-small chip-frame" onClick={() => setCursor(iso)}>
                 {f.slice(8, 10)}:{f.slice(10, 12)}

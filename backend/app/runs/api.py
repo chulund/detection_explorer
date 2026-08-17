@@ -21,6 +21,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
+from ..footprints.ahi import attach_row_footprints
 from ..models import SCHEMA_VERSION
 from ..scenes import get_scene
 from .journal import Journal
@@ -192,12 +193,20 @@ def build_router() -> APIRouter:
 
 
 def _frames_payload(run) -> list[dict]:
-    """Cached detections per frame, for a finished run."""
+    """Cached detections per frame, for a finished run.
+
+    Footprints are joined here rather than when the frame was computed, so that runs
+    cached before the join existed gain their polygons too. The reprojected grid is
+    memoised, so the join costs a dictionary lookup per row.
+    """
     out = []
     for frame, key in zip(run.frames, run.frame_keys):
         path = STATE_ROOT / "frames" / f"{key}.json"
-        if path.exists():
-            out.append(json.loads(path.read_text(encoding="utf-8")))
+        if not path.exists():
+            continue
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload["detections"] = attach_row_footprints(payload.get("detections") or [])
+        out.append(payload)
     return out
 
 

@@ -19,10 +19,10 @@ from pathlib import Path
 
 from pyproj import Transformer
 from shapely import wkt as shapely_wkt
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, mapping
 from shapely.ops import transform as shapely_transform
 
-from ..models import Detection
+from ..models import FOOTPRINT_KIND, Detection
 
 #: Where the BRIGHT pipeline keeps its ancillary files. Overridable so a clean clone
 #: without the pipeline can still start; the grid is simply unavailable then.
@@ -120,3 +120,36 @@ def attach_ahi_footprint(detection: Detection, x: int, y: int) -> Detection:
         status="validated",
         side=None,
     )
+
+
+def attach_row_footprints(rows: list[dict]) -> list[dict]:
+    """The same join, for the CSV rows a BRIGHT run produces.
+
+    A run does not go through `Detection`; it emits rows straight from the pipeline's
+    output file, and those rows are what the browser draws. They carry the same `x`,`y`
+    that index the grid, so they can carry the same exact polygon rather than being
+    reduced to a point.
+
+    A row whose pixel is not in the grid, or which predates the join and has no `x`,`y`
+    at all, comes back with `footprint: None`. Absent is absent: deriving a polygon from
+    the row's own latitude and longitude would move the detection somewhere the sensor
+    never looked.
+    """
+    out = []
+    for row in rows:
+        enriched = dict(row)
+        poly = None
+        try:
+            poly = pixel_footprint(int(row["x"]), int(row["y"]))
+        except (KeyError, TypeError, ValueError):
+            poly = None
+        enriched.update(
+            footprint=mapping(poly) if poly is not None else None,
+            footprint_kind=FOOTPRINT_KIND if poly is not None else None,
+            footprint_method="ahi_grid" if poly is not None else None,
+            footprint_model_version=MODEL_VERSION if poly is not None else None,
+            footprint_status="validated" if poly is not None else None,
+            footprint_side=None,
+        )
+        out.append(enriched)
+    return out

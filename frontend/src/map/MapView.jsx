@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { dotsFrom } from './features.js';
+import {
+  DETECTION_LAYERS, DETECTION_SOURCES, FIRST_DETECTION_LAYER, SELECTABLE_LAYERS,
+} from './layers.js';
 
 /**
  * The map.
@@ -54,9 +58,6 @@ const BASEMAP_SOURCE = {
   attribution: '© OpenStreetMap contributors',
 };
 
-/** Contextual layers sit above the basemap and below every detection. */
-const FIRST_DETECTION_LAYER = 'ahi-fill';
-
 function syncContextLayers(map, layers, enabled) {
   for (const layer of layers) {
     const sourceId = `ctx-${layer.id}`;
@@ -84,11 +85,12 @@ function syncContextLayers(map, layers, enabled) {
   }
 }
 
-export default function MapView({ ahi, polar, points, onSelect, dimmedIds,
+export default function MapView({ ahi, polar, points, onSelect, dimmedIds, fitKey,
                                   contextLayers = [], contextEnabled = {} }) {
   const container = useRef(null);
   const map = useRef(null);
   const ready = useRef(false);
+  const fitted = useRef(null);
 
   // `ready` has to exist twice, and the reason is a bug this cost an afternoon.
   //
@@ -102,7 +104,16 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds,
   // at mount.
   const [layersReady, setLayersReady] = useState(false);
   const latest = useRef(null);
-  latest.current = { ahi, polar, points, dimmedIds, contextLayers, contextEnabled };
+  latest.current = { ahi, polar, points, dimmedIds, contextLayers, contextEnabled, fitKey };
+
+  // Fit once per scene, on the first update that has anything to frame. Data arrives in
+  // more than one instalment — a run adds AHI footprints long after retrieval has
+  // settled — and refitting then would yank the view out from under whoever is reading
+  // it. Reads refs only, so the mount effect can safely close over the first instance.
+  const maybeFit = (data) => {
+    if (!map.current || fitted.current === data.fitKey) return;
+    if (fitToData(map.current, data)) fitted.current = data.fitKey;
+  };
 
   useEffect(() => {
     if (map.current) return;
@@ -136,49 +147,14 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds,
         });
       }
 
-      for (const id of ['ahi', 'polar', 'points']) {
+      for (const id of DETECTION_SOURCES) {
         map.current.addSource(id, { type: 'geojson', data: EMPTY });
       }
+      for (const layer of DETECTION_LAYERS) {
+        map.current.addLayer(layer);
+      }
 
-      // AHI: 2 km pixels, warm fill.
-      map.current.addLayer({
-        id: 'ahi-fill', type: 'fill', source: 'ahi',
-        paint: { 'fill-color': '#d95f02', 'fill-opacity': 0.35 },
-      });
-      map.current.addLayer({
-        id: 'ahi-line', type: 'line', source: 'ahi',
-        paint: { 'line-color': '#d95f02', 'line-width': 1 },
-      });
-
-      // Polar: 375 m pixels, cool fill, dimmed when the pass is stale.
-      map.current.addLayer({
-        id: 'polar-fill', type: 'fill', source: 'polar',
-        paint: {
-          'fill-color': '#1b6ca8',
-          'fill-opacity': ['case', ['get', 'dimmed'], 0.12, 0.45],
-        },
-      });
-      map.current.addLayer({
-        id: 'polar-line', type: 'line', source: 'polar',
-        paint: {
-          'line-color': '#1b6ca8',
-          'line-width': ['case', ['get', 'dimmed'], 0.6, 1.2],
-          'line-dasharray': [2, 1], // dashed: the position is one of two candidates
-        },
-      });
-
-      // Sources with no recoverable geometry, drawn honestly as points.
-      map.current.addLayer({
-        id: 'points-circle', type: 'circle', source: 'points',
-        paint: {
-          'circle-radius': 3.5,
-          'circle-color': '#6a3d9a',
-          'circle-stroke-width': 1,
-          'circle-stroke-color': '#ffffff',
-        },
-      });
-
-      for (const layer of ['ahi-fill', 'polar-fill', 'points-circle']) {
+      for (const layer of SELECTABLE_LAYERS) {
         map.current.on('click', layer, (event) => {
           onSelect?.(event.features?.[0]?.properties ?? null);
         });
@@ -193,6 +169,7 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds,
       setLayersReady(true);
       const now = latest.current;
       setData(map.current, now, now.dimmedIds);
+      maybeFit(now);
       syncContextLayers(map.current, now.contextLayers ?? [], now.contextEnabled ?? {});
     };
 
@@ -225,7 +202,8 @@ export default function MapView({ ahi, polar, points, onSelect, dimmedIds,
   useEffect(() => {
     if (!layersReady || !map.current) return;
     setData(map.current, { ahi, polar, points }, dimmedIds);
-  }, [layersReady, ahi, polar, points, dimmedIds]);
+    maybeFit({ ahi, polar, points, fitKey });
+  }, [layersReady, ahi, polar, points, dimmedIds, fitKey]);
 
   // Contextual layers are added on first use rather than up front, so a catalogue of
   // seven WMS services costs nothing until someone actually asks for one.
@@ -242,12 +220,49 @@ function setData(map, collections, dimmedIds) {
   for (const [id, collection] of Object.entries(collections)) {
     const source = map.getSource(id);
     if (!source) continue;
-    source.setData({
+    const marked = {
       type: 'FeatureCollection',
       features: (collection?.features ?? []).map((feature) => ({
         ...feature,
         properties: { ...feature.properties, dimmed: dim.has(feature.properties?.id) },
       })),
-    });
+    };
+    source.setData(marked);
+
+    // The footprint layers each carry a marker source alongside them. A circle layer over
+    // a polygon would draw one circle per vertex, so the markers are their own points.
+    const dots = map.getSource(`${id}-dots`);
+    if (dots) dots.setData(dotsFrom(marked));
   }
+}
+
+/**
+ * Open on the detections rather than on a fixed rectangle.
+ *
+ * The state-wide opening view was chosen before there was any data to look at, and it puts
+ * every footprint below the size of a screen pixel. Framing the detections is a better
+ * default and costs nothing: the user can still zoom out to the state.
+ *
+ * Footprints decide the frame, and points are used only when there are no footprints.
+ * DEA's 1785 hotspots are scattered across the whole state, so including them would fit
+ * back to roughly the rectangle this is replacing.
+ */
+function fitToData(map, { ahi, polar, points }) {
+  const preferred = [...(ahi?.features ?? []), ...(polar?.features ?? [])];
+  const features = preferred.length ? preferred : (points?.features ?? []);
+  if (!features.length) return false;
+
+  const bounds = new maplibregl.LngLatBounds();
+  let extended = 0;
+  for (const feature of features) {
+    const lon = Number(feature.properties?.lon);
+    const lat = Number(feature.properties?.lat);
+    if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
+    bounds.extend([lon, lat]);
+    extended += 1;
+  }
+  if (!extended) return false;
+
+  map.fitBounds(bounds, { padding: 60, maxZoom: 11, duration: 0 });
+  return true;
 }

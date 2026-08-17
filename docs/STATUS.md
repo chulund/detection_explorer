@@ -1,8 +1,14 @@
-# Detection Explorer — status, 13 August 2026
+# Detection Explorer — status, 17 August 2026
 
-Written for someone picking this up cold. Backend and frontend are both complete and tested.
-Everything in the plan is built. Two items remain, and both need a person: the walkthrough
-video, and Karin's localhost approval quoted in `decisions/DEV-01-localhost.md`.
+Written for someone picking this up cold. Backend and frontend are both built and tested.
+Three items remain and each needs a person: the walkthrough video, Karin's localhost
+approval quoted in `decisions/DEV-01-localhost.md`, and a look at the map to confirm the
+footprint fix described below.
+
+An earlier version of this document said the AHI footprint layer was done. It was not: the
+join existed and nothing called it, so the layer had a feature count of zero. That is
+recorded in full below rather than quietly corrected, because a status document that
+overstates completion is the failure mode this project is meant to avoid.
 
 ## Where it stands
 
@@ -13,8 +19,65 @@ video, and Karin's localhost approval quoted in `decisions/DEV-01-localhost.md`.
 | 2. Frontend | 14–18 | **done** |
 | 3. Delivery | 19–21 | **done except the video** |
 
-**139 backend tests and 8 frontend tests pass**, and the backend was additionally verified
+**151 backend tests and 36 frontend tests pass**, and the backend was additionally verified
 from a genuine clean clone under both run profiles.
+
+## The footprint layers were invisible, and the reasons were unrelated
+
+Reported on 17 August: neither the BRIGHT / AHI footprints nor the VIIRS / MODIS
+footprints could be seen. Two separate causes, one per layer, plus a third that had been
+hiding both.
+
+**Nothing ever attached an AHI footprint.** `footprints/ahi.py` had `attach_ahi_footprint`,
+`test_footprints.py` exercised it, and `registry.py` imported the module and re-exported
+it — and no application code called it. Only the polar attachment was wired in. The layer
+was not failing to draw; it had a feature count of zero, and the layer panel said so.
+
+The retrieval path could not have used it anyway. DEA is the only AHI-class source there
+and its WFS carries no `x`,`y` pixel index to join the grid on, which is why
+`provides_footprints` is False. AHI footprints can only come from a BRIGHT run, and that
+path was broken twice over: the run emitted `region,x,y,lon,lat,frp,...` with no polygon,
+and the frontend turned each row into a **Point** and handed it to a fill layer, which
+cannot draw a point. So even a successful run would have rendered nothing.
+
+The join now happens in `_frames_payload`, at read-out rather than at compute time, so
+runs cached before the join existed gain their polygons too. Verified against the six
+frames of real output still on disk from the August run: **342 of 342 detections join to
+the sensor grid**, and every polygon contains its own row's reported position.
+
+**Polar footprints were drawn correctly and could not be seen.** At the opening view the
+ground resolution is about 3.4 km per screen pixel, so a measured 478 m footprint spans
+**0.14 of a screen pixel**. The overpass filter also reduces 505 footprints to the 98 of
+the latest pass per platform, and at the default cursor both surviving passes are past the
+300 s tolerance, so all 98 draw at `fill-opacity: 0.12`. MapLibre's own tiler keeps every
+one of them at every zoom from 5 to 14, checked offline against `@maplibre/geojson-vt`, so
+this was never a data or tiling problem. It was arithmetic.
+
+Two changes. The map now opens on the detections rather than on a fixed state-wide
+rectangle, which lands at about zoom 7. And each footprint layer gained a marker that
+carries it until the polygon is legible and then fades out: zoom 8 to 9.5 for a 2 km AHI
+pixel, 10.5 to 12 for a 375 m polar pixel, being roughly where each reaches four screen
+pixels. The marker and the readable polygon are never on screen together, so true scale
+still means what it says, and the layer panel says the same thing in words.
+
+**`.env` was never read.** No `load_dotenv`, no `python-dotenv` dependency, nothing. So
+the research profile did not exist: FIRMS served fixtures with a valid key sitting in
+`.env`, and BRIGHT reported `BRIGHT_PIPELINE_PATH unset` on a machine holding the
+pipeline. `app/__init__.py` now reads it, in the package initialiser because provider
+availability is decided at import time. The shell wins over the file, and an absent file
+is not an error.
+
+The test suite opts out through `DETECTION_EXPLORER_SKIP_ENV`, and that is not tidiness:
+a developer's real FIRMS key sends the provider to the network instead of to the committed
+fixtures, so loading `.env` would have quietly put an offline suite on the internet.
+
+**A layer went missing while fixing this, which is worth recording.** The polar marker's
+opacity multiplied a zoom interpolation by a data expression, and MapLibre rejects a zoom
+expression anywhere but the outermost position. `addLayer` threw, which abandoned the rest
+of the setup, and the result looked like an empty map rather than an error — the same
+failure shape as the bugs below. The layer definitions now live in `map/layers.js` and are
+validated against the MapLibre style specification in `map/layers.test.js`, with the
+rejected expression kept as a live example.
 
 ## The map: working, after five real bugs
 
@@ -181,13 +244,21 @@ in NSW, and 4000 Australia-wide points are noise around it.
 
 ## Next
 
-Task 15 continues the frontend, once the map question above is settled.
+Five things remain outstanding.
 
-Four things remain outstanding.
-
+- **The footprint fix has not been confirmed on screen.** Every link is verified — 342 of
+  342 rows join the grid, all seven layers validate against the style specification, and
+  the map was observed opening at zoom 7 with 98 polar footprints rendering — but the
+  final visual check was not made, because the automated browser tab kept losing
+  foreground and a hidden tab suspends `requestAnimationFrame`, which stops MapLibre
+  loading its style at all. Worth knowing in its own right: a headless or backgrounded
+  tab is not a usable environment for checking this map. Open it yourself and look.
 - The 26.7 s per frame figure should replace the plan's 15.5 s wherever the animation budget
   is discussed.
 - `BRIGHT_PIPELINE_SHA` is unset, so cache keys record `unpinned`. Set it before any run whose
   output is meant to be reproducible.
 - Decision records DEV-01 to DEV-05 are still to be written, and DEV-01 needs Karin's
   localhost approval quoted with its date.
+- The run cache under `runs/frames/` is empty, so the first "Run detection" recomputes all
+  six frames at roughly 27 s each. The pipeline's own output from the August run is still
+  in `data/streamed/`, which is what made the grid join verifiable without recomputing.
