@@ -120,6 +120,22 @@ def test_frames_and_frame_keys_survive_a_round_trip(store):
     assert fetched.frame_keys == ["f1", "f2"]
 
 
+def test_structured_provenance_survives_a_round_trip(store):
+    provenance = {
+        "pipeline": {"configured_sha": "abc123", "actual_sha": "abc123"},
+        "configuration": {"sha256": "cfg"},
+        "ancillary": {"pixel_grid_sha256": "grid"},
+    }
+    run = store.create(
+        run_key="with-provenance", scene="april-9-demo",
+        frame_keys=["f1"], frames=["20260409040000"],
+        provenance=provenance,
+    )
+
+    assert store.get(run.id).provenance == provenance
+    assert store.get(run.id).to_dict()["provenance"] == provenance
+
+
 def test_unknown_state_is_refused(store):
     run = _make(store)
     with pytest.raises(ValueError, match="unknown state"):

@@ -3,10 +3,37 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
 from app.runs import api as runs_api
+
+
+def test_relative_state_root_is_resolved_from_the_repository():
+    repository = Path(__file__).resolve().parents[2]
+    assert runs_api.resolve_state_root("runs-test") == repository / "runs-test"
+
+
+def test_run_keys_return_the_structured_provenance_used_for_identity(
+        monkeypatch):
+    inspected = {
+        "available": True,
+        "reproducible": True,
+        "pipeline": {"configured_sha": "pin", "actual_sha": "pin",
+                     "checkout_clean": True},
+        "configuration": {"period": "both", "sha256": "config"},
+        "ancillary": {"pixel_grid_sha256": "grid",
+                      "sensor_geometry_sha256": "geometry"},
+    }
+    monkeypatch.setenv("BRIGHT_PIPELINE_PATH", "configured")
+    monkeypatch.setattr(runs_api, "inspect_pipeline", lambda: inspected)
+
+    _, frame_keys, frames, provenance = runs_api.keys_for("april-9-demo")
+
+    assert len(frame_keys) == len(frames) == 6
+    assert provenance["pipeline"]["actual_sha"] == "pin"
+    assert set(provenance["inputs"]["manifest_sha256_by_frame"]) == set(frames)
 
 
 def _sse_events(text: str) -> list[dict]:
@@ -43,6 +70,13 @@ def finished_run():
 
     anyio.run(_seed)
     runs_api.STORE.set_state(run.id, "succeeded")
+    directory = runs_api.STATE_ROOT / "frames"
+    directory.mkdir(parents=True, exist_ok=True)
+    for frame, key in zip(run.frames, run.frame_keys):
+        (directory / f"{key}.json").write_text(json.dumps({
+            "frame": frame, "frame_key": key,
+            "computed_at": "2026-04-09T05:00:00Z", "detections": [],
+        }), encoding="utf-8")
     return runs_api.STORE.get(run.id)
 
 
@@ -80,6 +114,38 @@ def test_without_a_pipeline_the_service_says_so_rather_than_failing_obscurely(
     assert "BRIGHT_PIPELINE_PATH" in response.json()["detail"]
 
 
+def test_succeeded_run_with_missing_frame_cache_starts_a_new_attempt(
+        client, monkeypatch, tmp_path):
+    from app.runs.store import RunStore
+
+    store = RunStore(tmp_path / "runs.sqlite")
+    previous = store.create(
+        run_key="same", scene="april-9-demo", frame_keys=["missing"],
+        frames=["20260409040000"], provenance={"pipeline": {"actual_sha": "pin"}},
+    )
+    store.set_state(previous.id, "succeeded")
+    submitted = []
+
+    class Queue:
+        async def submit(self, run):
+            submitted.append(run)
+
+    monkeypatch.setattr(runs_api, "STORE", store)
+    monkeypatch.setattr(
+        runs_api, "keys_for",
+        lambda scene: ("same", ["missing"], ["20260409040000"],
+                       {"pipeline": {"actual_sha": "pin"}}),
+    )
+    monkeypatch.setattr(runs_api, "build_queue", lambda: Queue())
+
+    response = client.post("/api/v2/runs", json={"scene": "april-9-demo"})
+
+    assert response.status_code == 202
+    assert response.json()["delivery"] == "fresh"
+    assert response.json()["attempt"] == 2
+    assert submitted[0].parent_run_id == previous.id
+
+
 def test_unknown_run_ids_are_404(client):
     assert client.get("/api/v2/runs/nope").status_code == 404
     assert client.post("/api/v2/runs/nope/cancel").status_code == 404
@@ -95,9 +161,49 @@ def test_get_run_reports_state_and_lineage(client, finished_run):
     assert body["frames"] == ["20260409040000", "20260409041000"]
 
 
+def test_get_succeeded_run_reports_an_incomplete_cache(client, monkeypatch, tmp_path):
+    from app.runs.store import RunStore
+
+    store = RunStore(tmp_path / "runs.sqlite")
+    run = store.create(
+        run_key="incomplete", scene="april-9-demo", frame_keys=["missing"],
+        frames=["20260409040000"],
+    )
+    store.set_state(run.id, "succeeded")
+    monkeypatch.setattr(runs_api, "STORE", store)
+
+    response = client.get(f"/api/v2/runs/{run.id}")
+
+    assert response.status_code == 409
+    assert "incomplete" in response.json()["detail"]
+
+
 def test_cancelling_a_finished_run_is_a_noop(client, finished_run):
     body = client.post(f"/api/v2/runs/{finished_run.id}/cancel").json()
     assert body["state"] == "succeeded"
+
+
+def test_cancel_without_a_built_queue_still_journals_a_terminal_event(
+        client, monkeypatch, tmp_path):
+    from app.runs.journal import Journal
+    from app.runs.store import RunStore
+
+    store = RunStore(tmp_path / "runs.sqlite")
+    journal = Journal(tmp_path / "journals")
+    run = store.create(
+        run_key="cancel-no-queue", scene="april-9-demo",
+        frame_keys=["fk"], frames=["20260409040000"],
+    )
+    monkeypatch.setattr(runs_api, "STORE", store)
+    monkeypatch.setattr(runs_api, "JOURNAL", journal)
+    monkeypatch.setattr(runs_api, "build_queue", lambda: None)
+
+    response = client.post(f"/api/v2/runs/{run.id}/cancel")
+
+    assert response.json()["state"] == "cancelled"
+    [event] = journal.read(run.id)
+    assert event.kind == "run.state"
+    assert event.payload == {"state": "cancelled"}
 
 
 @pytest.fixture
@@ -181,6 +287,11 @@ def test_a_terminal_run_closes_the_stream_rather_than_hanging(client, finished_r
     assert "run.done" in text
 
 
+def test_cancelled_run_state_is_a_terminal_stream_event():
+    assert runs_api._is_terminal_event("run.state", {"state": "cancelled"})
+    assert not runs_api._is_terminal_event("run.state", {"state": "running"})
+
+
 # ------------------------------------------------------------------ recovery
 
 def test_restart_marks_in_flight_runs_interrupted():
@@ -194,3 +305,19 @@ def test_restart_marks_in_flight_runs_interrupted():
     recovered = runs_api.STORE.get(run.id)
     assert recovered.state == "failed"
     assert recovered.error == "interrupted"
+
+
+def test_restart_recovery_appends_a_terminal_error_event():
+    import anyio
+
+    run = runs_api.STORE.create(
+        run_key="test-journalled-orphan", scene="april-9-demo",
+        frame_keys=["fk"], frames=["20260409040000"],
+    )
+    runs_api.STORE.set_state(run.id, "running")
+
+    anyio.run(runs_api.recover_orphans_and_journal)
+
+    [event] = runs_api.JOURNAL.read(run.id)
+    assert event.kind == "run.error"
+    assert event.payload == {"reason": "interrupted", "state": "failed"}

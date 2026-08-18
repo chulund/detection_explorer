@@ -11,6 +11,7 @@ evidence rather than noise.
 
 from __future__ import annotations
 
+import json
 import sqlite3
 import uuid
 from dataclasses import dataclass
@@ -31,6 +32,7 @@ CREATE TABLE IF NOT EXISTS runs (
     attempt INTEGER NOT NULL DEFAULT 1,
     parent_run_id TEXT,
     error TEXT,
+    provenance TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -53,6 +55,7 @@ class Run:
     attempt: int
     parent_run_id: str | None
     error: str | None
+    provenance: dict
     created_at: str
     updated_at: str
 
@@ -65,6 +68,7 @@ class Run:
             "run_id": self.id, "run_key": self.run_key, "scene": self.scene,
             "frames": self.frames, "state": self.state, "attempt": self.attempt,
             "parent_run_id": self.parent_run_id, "error": self.error,
+            "provenance": self.provenance,
             "created_at": self.created_at, "updated_at": self.updated_at,
         }
 
@@ -74,21 +78,32 @@ class RunStore:
         self._conn = sqlite3.connect(str(path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(_SCHEMA)
+        columns = {row["name"] for row in self._conn.execute("PRAGMA table_info(runs)")}
+        if "provenance" not in columns:
+            with self._conn:
+                self._conn.execute(
+                    "ALTER TABLE runs ADD COLUMN provenance TEXT NOT NULL DEFAULT '{}'"
+                )
+
+    def close(self) -> None:
+        self._conn.close()
 
     # ------------------------------------------------------------------ writes
 
     def create(self, *, run_key: str, scene: str, frame_keys: list[str],
                frames: list[str], attempt: int = 1,
-               parent_run_id: str | None = None) -> Run:
+               parent_run_id: str | None = None,
+               provenance: dict | None = None) -> Run:
         run_id = uuid.uuid4().hex
         now = _now()
         with self._conn:
             self._conn.execute(
                 "INSERT INTO runs (id, run_key, scene, frame_keys, frames, state, "
-                "attempt, parent_run_id, error, created_at, updated_at) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                "attempt, parent_run_id, error, provenance, created_at, updated_at) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                 (run_id, run_key, scene, "\n".join(frame_keys), "\n".join(frames),
-                 "queued", attempt, parent_run_id, None, now, now))
+                 "queued", attempt, parent_run_id, None,
+                 json.dumps(provenance or {}, sort_keys=True), now, now))
         return self.get(run_id)
 
     def set_state(self, run_id: str, state: str, error: str | None = None) -> Run:
@@ -112,7 +127,7 @@ class RunStore:
         return self.create(
             run_key=run_key, scene=previous.scene, frame_keys=previous.frame_keys,
             frames=previous.frames, attempt=previous.attempt + 1,
-            parent_run_id=previous.id)
+            parent_run_id=previous.id, provenance=previous.provenance)
 
     # ------------------------------------------------------------------ reads
 
@@ -123,6 +138,7 @@ class RunStore:
             frames=row["frames"].split("\n") if row["frames"] else [],
             state=row["state"], attempt=row["attempt"],
             parent_run_id=row["parent_run_id"], error=row["error"],
+            provenance=json.loads(row["provenance"] or "{}"),
             created_at=row["created_at"], updated_at=row["updated_at"])
 
     def get(self, run_id: str) -> Run:

@@ -19,6 +19,7 @@ from .footprints import polar as polar_footprints
 from .models import Detection
 from .providers.dea import DeaProvider
 from .providers.firms import FirmsProvider
+from .runs.provenance import PipelinePreflightError, inspect_pipeline
 from .scenes import Scene, admit
 
 FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
@@ -37,6 +38,12 @@ PROVIDERS = build_providers()
 def provider_status() -> dict[str, dict]:
     """What each provider can do right now, and why not where it cannot."""
     pipeline = os.environ.get("BRIGHT_PIPELINE_PATH")
+    try:
+        bright_provenance = inspect_pipeline(require_reproducible=bool(pipeline))
+        bright_reason = bright_provenance.get("reason")
+    except PipelinePreflightError as exc:
+        bright_provenance = {"available": False, "reproducible": False}
+        bright_reason = str(exc)
     firms = PROVIDERS["firms"]
     return {
         "dea": {
@@ -53,9 +60,15 @@ def provider_status() -> dict[str, dict]:
             "note": "Fixtures never serve the current scene.",
         },
         "bright": {
-            "available": bool(pipeline),
-            "reason": None if pipeline else "BRIGHT_PIPELINE_PATH unset",
+            "available": bool(bright_provenance.get("available")),
+            "reproducible": bool(bright_provenance.get("reproducible")),
+            "reason": bright_reason,
             "footprints": True,
+            "pipeline_sha": bright_provenance.get("pipeline", {}).get("actual_sha"),
+            "configuration_sha256": bright_provenance.get(
+                "configuration", {}
+            ).get("sha256"),
+            "ancillary_sha256": bright_provenance.get("ancillary", {}),
             # The version the interface labels run output with. Configuration rather than
             # a string in the frontend, so it changes when the pipeline changes and not
             # when someone remembers to edit a label. DEA independently serves the older

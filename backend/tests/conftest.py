@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import pytest
 from fastapi.testclient import TestClient
@@ -23,10 +24,23 @@ if str(BACKEND) not in sys.path:
 # the committed fixtures, which would make this suite depend on credentials and a route
 # out. Profiles are built with monkeypatch instead.
 os.environ["DETECTION_EXPLORER_SKIP_ENV"] = "1"
+_TEST_STATE = TemporaryDirectory(
+    prefix="detection-explorer-tests-", ignore_cleanup_errors=True
+)
+os.environ["DETECTION_EXPLORER_STATE"] = _TEST_STATE.name
 
 from app.compat import LEGACY_STORE, LegacyDetection  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Detection  # noqa: E402
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _cleanup_test_state():
+    yield
+    from app.runs import api as runs_api
+
+    runs_api.STORE.close()
+    _TEST_STATE.cleanup()
 
 
 @pytest.fixture

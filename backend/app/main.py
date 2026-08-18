@@ -19,9 +19,13 @@ async def lifespan(app: FastAPI):
     # Nothing can still be running after a restart, so any run left mid-flight is
     # marked failed with reason "interrupted". Its journal is preserved, so the
     # evidence of how far it got survives.
-    interrupted = runs_api.recover_orphans()
+    interrupted = await runs_api.recover_orphans_and_journal()
     app.state.interrupted_on_startup = [r.id for r in interrupted]
-    yield
+    try:
+        yield
+    finally:
+        if runs_api.QUEUE is not None:
+            await runs_api.QUEUE.stop()
 
 
 app = FastAPI(

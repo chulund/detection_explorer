@@ -69,6 +69,7 @@ def test_v2_status_reports_all_three_providers(client):
     assert set(body["providers"]) == {"dea", "firms", "bright"}
     for entry in body["providers"].values():
         assert "available" in entry and "footprints" in entry
+    assert body["providers"]["bright"]["reproducible"] is False
 
 
 def test_scenes_endpoint_declares_the_half_open_window(client):
