@@ -2,8 +2,13 @@
 
 Written for someone picking this up cold. Backend and frontend are both built and tested.
 Three items remain and each needs a person: the walkthrough video, Karin's localhost
-approval quoted in `decisions/DEV-01-localhost.md`, and a look at the map to confirm the
-footprint fix described below.
+approval quoted in `decisions/DEV-01-localhost.md`, and **a look at the running interface**.
+Nothing on this machine has seen the dashboard rendered: the Chrome extension used for
+automated checks is disconnected, and before that a driven tab reported
+`visibilityState: "hidden"`, which suspends `requestAnimationFrame` and stops MapLibre
+loading its style at all. Everything below is verified by tests, by a server-side render of
+the whole component tree, and by running the live API payload through the real frontend
+pipeline — but not by eye.
 
 An earlier version of this document said the AHI footprint layer was done. It was not: the
 join existed and nothing called it, so the layer had a feature count of zero. That is
@@ -19,8 +24,64 @@ overstates completion is the failure mode this project is meant to avoid.
 | 2. Frontend | 14–18 | **done** |
 | 3. Delivery | 19–21 | **done except the video** |
 
-**151 backend tests and 36 frontend tests pass**, and the backend was additionally verified
+**167 backend tests and 158 frontend tests pass**, and the backend was additionally verified
 from a genuine clean clone under both run profiles.
+
+## The dashboard revamp, 17 August
+
+The interface is now a dark telemetry dashboard. The functional patterns come from the
+XPRIZE finals frontend at `20260224_BRIGHT_delivery/web/frontend`; two of them could not be
+copied, because that codebase is Mapbox-with-a-token and Himawari-only, with no polar
+sensors and therefore no geostationary-versus-polar distinction anywhere in it.
+
+**Layers are named by what produced them.** Three toggles named after data sources became
+one row per algorithm, version, sensor and platform, derived from the records rather than
+declared. That was not cosmetic: the demo hour carries **ten pairings with records**, plus one
+queried product that returned none, and the old panel left 1660 of the 1785 DEA records
+with no label at all. DEA alone serves AFIMG 6, AFMOD 6, Landgate Daytime VIIRS 6,
+Landgate AHI 1.0.0 and BRIGHT AHI 1.86, across Suomi-NPP, NOAA-20 and Himawari-9.
+
+A product that was queried and returned nothing keeps its row, greyed and reading zero.
+`MODIS_SP` is queried for this scene and has no records in the hour, and omitting it would
+let a reader conclude MODIS was never consulted. Providers now report `products_queried`
+alongside their count for exactly this.
+
+**Colour is spread across a hue band, not drawn from a list.** Warm hues are geostationary,
+cool are polar. The first attempt used a fixed eight-entry cool ramp against nine polar
+layers, so the ninth wrapped onto the first and AFIMG on NOAA-20 was painted identically to
+VIIRS_SNPP_SP on Suomi-NPP. Found by running the live payload through the real pipeline
+rather than by a test — the unit test only had three keys. There is now a test with more
+layers than any ramp would hold.
+
+**Rendering is Auto, Footprints or Points.** Auto keeps the marker until the polygon is
+legible. Footprints forces true scale everywhere, and deliberately keeps markers for
+records that carry no geometry at all, or the 1785 DEA hotspots would vanish from the mode
+that claims to show everything. Points drops the polygons entirely.
+
+Every detection now shares one source, with colour and sensor class travelling on the
+feature, so eleven pairings cost six layers rather than thirty-three and toggling one is a
+filter update. The marker fade still needs three layers, because a zoom expression is only
+legal as the outermost expression of a property and the fade differs per pixel size.
+
+**Legends appear only for active layers**, in a collapsible dock bottom-left. The ramps come
+from the reference's rendered variants: it carries two versions of several scales and they
+disagree, so the three-class fractional cover array it declares was ignored in favour of
+the nine-class one it draws. The DEA layers are now requested with a named style rather
+than the service default, because a legend describes one specific rendering; checked over a
+populated extent, the named style and the default return byte-identical tiles today.
+
+**Brightness temperature reaches the interface.** It was in every source and in none of the
+responses: DEA sends `temp_kelvin`, FIRMS sends `bright_ti4`/`bright_ti5`, and the pipeline
+emits `mir`, `tir` and `back_bt`, which a nine-column filter in the worker was discarding.
+It travels with `brightness_channel`, because VIIRS I4 at 3.74 µm, MODIS T21 at 4 µm and
+AHI B07 at 3.9 µm are not one quantity. DEA names no band, so its channel says so.
+
+**Prose became chips.** The scene banner, both footprint caveats and the layer footnotes
+moved into an About sheet and hover tooltips. The caveats still read their field rather
+than being hardcoded, and still quote the measured figures.
+
+Four keyless basemaps, a click popup with a selection halo, and zoom-to-extent,
+reset-north, scale and fullscreen controls. See `decisions/DEV-06-keyless-basemaps.md`.
 
 ## The footprint layers were invisible, and the reasons were unrelated
 

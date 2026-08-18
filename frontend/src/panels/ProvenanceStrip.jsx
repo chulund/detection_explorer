@@ -1,67 +1,54 @@
+import { Badge, Tooltip } from './ui.jsx';
+
 /**
- * What each source is, when it last observed, and where its records came from.
+ * Source status, compressed to chips in the header.
  *
- * Three separate facts, deliberately not merged into one badge. `data_nature` is what the
- * observation scientifically is. `computation` is where the record came from. Delivery,
- * whether a run was fresh or cached, belongs to the run and is shown by the run panel, not
- * here, because it describes delivery rather than the observation.
+ * This used to be a full-width strip of cards restating each source's nature, count,
+ * fixture flag and the scene window. All of that is still reachable — the counts are in
+ * the layer panel, the rest is on the chip and in the About sheet — but it no longer
+ * takes a band across the top of a dashboard whose subject is the map.
  */
 
-const NATURE_LABEL = {
-  live: 'Current external feed',
-  static: 'Historical observation',
-  replay: 'BRIGHT recomputed from staged inputs',
+const NATURE = {
+  live: ['ok', 'live'],
+  static: ['tech', 'historical'],
+  replay: ['fire', 'replay'],
 };
 
-const NATURE_CLASS = { live: 'nature-live', static: 'nature-static', replay: 'nature-replay' };
-
-export default function ProvenanceStrip({ sources, detections, sceneWindow }) {
+export default function ProvenanceStrip({ sources, detections }) {
   const entries = Object.entries(sources ?? {});
   if (!entries.length) return null;
 
-  const naturesFor = (name) => {
-    const set = new Set(
-      (detections ?? [])
-        .filter((d) => d.properties?.source === name)
-        .map((d) => d.properties?.data_nature),
-    );
-    return [...set];
-  };
+  const naturesFor = (name) => [...new Set(
+    (detections ?? [])
+      .filter((d) => d.properties?.source === name)
+      .map((d) => d.properties?.data_nature),
+  )];
 
   return (
-    <div className="provenance">
+    <div className="chip-row" style={{ margin: 0 }}>
       {entries.map(([name, info]) => {
-        const natures = naturesFor(name);
+        const [nature] = naturesFor(name);
+        const [tone, label] = NATURE[nature] ?? [undefined, null];
+        const detail = info.available
+          ? [`${info.count ?? 0} records`,
+             label && `nature: ${label}`,
+             info.used_fixture && 'served from a committed fixture',
+             info.truncated && 'truncated at the service cap',
+             info.products_queried?.length && info.products_queried[0] !== '*'
+               && `queried ${info.products_queried.join(', ')}`,
+            ].filter(Boolean).join(' · ')
+          : `unavailable${info.reason ? ` — ${info.reason}` : ''}`;
+
         return (
-          <div key={name} className={`prov-card ${info.available ? '' : 'prov-off'}`}>
-            <div className="prov-name">{name}</div>
-            {info.available ? (
-              <>
-                {natures.map((n) => (
-                  <span key={n} className={`badge ${NATURE_CLASS[n] ?? ''}`}>
-                    {NATURE_LABEL[n] ?? n}
-                  </span>
-                ))}
-                {info.used_fixture && <span className="badge badge-warn">from cached fixture</span>}
-                <div className="prov-count">{info.count ?? 0} detections</div>
-              </>
-            ) : (
-              <div className="prov-count muted">
-                unavailable{info.reason ? ` — ${info.reason}` : ''}
-              </div>
-            )}
-          </div>
+          <Tooltip key={name} text={detail}>
+            <Badge tone={info.available ? tone : 'bad'}>
+              {name}
+              {info.used_fixture && ' ·  fixture'}
+            </Badge>
+          </Tooltip>
         );
       })}
-      {sceneWindow && (
-        <div className="prov-card prov-window">
-          <div className="prov-name">Window</div>
-          <div className="prov-count">
-            {sceneWindow.start} to {sceneWindow.end}
-            {sceneWindow.half_open ? ' (end exclusive)' : ''}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

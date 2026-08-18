@@ -1,82 +1,97 @@
+import { useState } from 'react';
+import { popupFields } from '../map/popup.js';
+import { Badge, Field, Tooltip } from './ui.jsx';
+
 /**
- * FR-DETAIL, plus the two footprint caveats.
+ * The selected detection.
  *
- * Both caveats read their field rather than being hardcoded. If the orientation is ever
- * validated, or the side ever recovered, the badge changes because the data changed, not
- * because someone remembered to edit a string.
+ * Primary measurements are always visible; identifiers, model versions and the rest of
+ * the provenance block sit behind one disclosure. The panel used to show all of it at
+ * once, which made the two numbers a person actually reads — power and temperature —
+ * take as much attention as `footprint_model_version`.
+ *
+ * Both caveats are chips now rather than paragraphs, and both still read their field
+ * rather than being hardcoded. If the orientation is ever validated, or the side ever
+ * recovered, the chip disappears because the data changed and not because someone
+ * remembered to edit a string. The full wording is on the chip and in the About sheet.
  */
 
-const CAVEATS = {
+export const CAVEATS = {
   experimental:
-    'Experimental footprint: high-latitude orientation validation pending. Model ' +
-    'comparisons have shown discrepancies of up to 892 m; this is not a measured error ' +
-    'bound for this detection.',
+    'Experimental footprint: high-latitude orientation validation pending. Model '
+    + 'comparisons have shown discrepancies of up to 892 m; this is not a measured error '
+    + 'bound for this detection.',
   ambiguous:
-    'Two candidates shown. A FIRMS record cannot say which side of the satellite’s ' +
-    'ground track the pixel lay on, and at this latitude the two possibilities differ ' +
-    'materially (measured: 0.78 overlap, up to 476 m at the corners).',
+    'Two candidates shown. A FIRMS record cannot say which side of the satellite’s '
+    + 'ground track the pixel lay on, and at this latitude the two possibilities differ '
+    + 'materially (measured: 0.78 overlap, up to 476 m at the corners).',
 };
 
-const Row = ({ label, value }) =>
-  value === null || value === undefined || value === '' ? null : (
-    <div className="detail-row">
-      <span className="detail-label">{label}</span>
-      <span className="detail-value">{String(value)}</span>
-    </div>
-  );
+const NATURE = {
+  live: ['ok', 'live'],
+  static: ['tech', 'historical'],
+  replay: ['fire', 'replay'],
+};
 
 export default function DetailCard({ detection }) {
+  const [technical, setTechnical] = useState(false);
+
   if (!detection) {
-    return (
-      <div className="panel">
-        <h2>Detection</h2>
-        <p className="muted">Click a footprint or point on the map.</p>
-      </div>
-    );
+    return <div className="empty-state">Select a detection on the map.</div>;
   }
 
   const d = detection;
-  const confidence = d.confidence_native ?? d.confidence;
+  const [tone, label] = NATURE[d.data_nature] ?? [undefined, d.data_nature];
 
   return (
-    <div className="panel">
-      <h2>Detection</h2>
+    <>
+      <div className="chip-row">
+        {label && <Badge tone={tone}>{label}</Badge>}
+        {d.computation && <Badge>{d.computation}</Badge>}
+        {d.footprint_status === 'experimental' && (
+          <Tooltip text={CAVEATS.experimental}>
+            <Badge tone="warn">experimental</Badge>
+          </Tooltip>
+        )}
+        {d.footprint_side === 'ambiguous' && (
+          <Tooltip text={CAVEATS.ambiguous}>
+            <Badge tone="warn">2 candidates</Badge>
+          </Tooltip>
+        )}
+      </div>
 
-      <Row label="Observed" value={d.detected_at} />
-      <Row label="Nature" value={d.data_nature} />
-      <Row label="Origin" value={d.computation} />
+      {popupFields(d).map((field) => (
+        <Field key={field.label} label={field.label} value={field.value}
+               text={!field.numeric} />
+      ))}
 
-      <h3>Instrument</h3>
-      <Row label="Platform" value={d.platform} />
-      <Row label="Instrument" value={d.instrument} />
-      <Row label="Product" value={d.product} />
-      <Row label="Algorithm" value={`${d.algorithm ?? ''} ${d.algorithm_version ?? ''}`.trim()} />
+      <button
+        type="button"
+        className="disclosure-toggle"
+        aria-expanded={technical}
+        onClick={() => setTechnical((was) => !was)}
+      >
+        {technical ? '▾ Hide technical fields' : '▸ Show technical fields'}
+      </button>
 
-      <h3>Measurement</h3>
-      <Row label="Position" value={`${Number(d.lat).toFixed(4)}, ${Number(d.lon).toFixed(4)}`} />
-      <Row label="FRP" value={d.frp_mw ? `${Number(d.frp_mw).toFixed(1)} MW` : null} />
-      <Row
-        label="Confidence"
-        value={confidence != null ? `${confidence}${d.confidence_scheme ? ` (${d.confidence_scheme})` : ''}` : null}
-      />
-
-      {d.footprint_kind && (
+      {technical && (
         <>
-          <h3>Footprint</h3>
-          <Row label="Kind" value="satellite pixel footprint, not a fire perimeter" />
-          <Row label="Method" value={d.footprint_method} />
-          <Row label="Model" value={d.footprint_model_version} />
-          <Row label="Status" value={d.footprint_status} />
-          <Row label="Side" value={d.footprint_side} />
+          <Field label="Record" value={d.id} />
+          <Field label="Source" value={d.source} text />
+          <Field label="Product" value={d.product} text />
+          <Field label="Satellite" value={d.satellite} text />
+          <Field label="Published" value={d.published_at} />
+          {d.footprint_kind && (
+            <>
+              <Field label="Geometry" value="satellite pixel footprint" text />
+              <Field label="Method" value={d.footprint_method} text />
+              <Field label="Model" value={d.footprint_model_version} text />
+              <Field label="Status" value={d.footprint_status} text />
+              <Field label="Side" value={d.footprint_side} text />
+            </>
+          )}
         </>
       )}
-
-      {d.footprint_status === 'experimental' && (
-        <p className="caveat">{CAVEATS.experimental}</p>
-      )}
-      {d.footprint_side === 'ambiguous' && (
-        <p className="caveat">{CAVEATS.ambiguous}</p>
-      )}
-    </div>
+    </>
   );
 }

@@ -83,21 +83,17 @@ export default function RunPanel({ scene, onFrames }) {
   const active = state === 'queued' || state === 'running';
 
   return (
-    <div className="panel">
-      <h2>Run BRIGHT</h2>
-      <p className="muted small">
-        Recomputes detection from staged Himawari inputs, one frame at a time. Each frame
-        is a real run over its own 29-day statistical window and takes roughly half a
-        minute.
-      </p>
+    <div>
 
       <div className="run-actions">
-        <button className="chip" onClick={begin} disabled={busy || active}>
-          {active ? 'Running…' : 'Run detection'}
+        <button className="chip" onClick={begin} disabled={busy || active}
+                title="Recomputes six frames from staged Himawari inputs. Each frame is a
+real run over its own 29-day statistical window and takes roughly half a minute.">
+          {active ? 'Running…' : 'Run BRIGHT'}
         </button>
         {active && <button className="chip" onClick={stop}>Cancel</button>}
         {state && <span className="badge">{STATE_LABEL[state] ?? state}</span>}
-        {run?.delivery === 'cached' && <span className="badge badge-warn">cached result</span>}
+        {run?.delivery === 'cached' && <span className="badge badge-warn">cached</span>}
         {run?.attempt > 1 && <span className="badge">attempt {run.attempt}</span>}
       </div>
 

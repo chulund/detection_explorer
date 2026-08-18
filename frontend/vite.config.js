@@ -15,5 +15,5 @@ export default defineConfig({
     port: 5199,
     proxy: { '/api': { target: 'http://localhost:8000', changeOrigin: true } },
   },
-  test: { environment: 'node', include: ['src/**/*.test.js'] },
+  test: { environment: 'node', include: ['src/**/*.test.{js,jsx}'] },
 });

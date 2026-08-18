@@ -65,6 +65,15 @@ class Detection:
     confidence_native: str | float | None
     confidence_scheme: str | None
 
+    #: Brightness temperature in Kelvin, and the band it was measured in.
+    #:
+    #: The channel is not decoration. VIIRS reports I4 at 3.74 um, MODIS reports T21 at
+    #: 4 um, BRIGHT reports AHI B07 at 3.9 um, and DEA reports Kelvin without saying which
+    #: band at all. Presenting those four as one unlabelled number would flatten a real
+    #: distinction, which is the same reason `confidence_scheme` exists.
+    brightness_k: float | None
+    brightness_channel: str | None
+
     # --- geometry: these six stand or fall together ---------------------------
     footprint: dict[str, Any] | None
     footprint_kind: str | None
@@ -98,7 +107,8 @@ class Detection:
         """A detection with no footprint. All six geometry fields default to None."""
         fields.setdefault("replay_of", None)
         for name in ("footprint", "footprint_kind", "footprint_method",
-                     "footprint_model_version", "footprint_status", "footprint_side"):
+                     "footprint_model_version", "footprint_status", "footprint_side",
+                     "brightness_k", "brightness_channel"):
             fields.setdefault(name, None)
         return cls(**fields)
 

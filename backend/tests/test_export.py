@@ -62,6 +62,26 @@ def test_csv_header_keeps_every_provenance_column(client):
         assert column in header
 
 
+def test_csv_carries_brightness_with_its_channel(client):
+    """A Kelvin column without the band it was measured in would be uninterpretable."""
+    text = client.get(
+        "/api/v2/export?scene=april-9-demo&sources=firms&format=csv").text
+    rows = list(csv.DictReader(io.StringIO(text)))
+    assert rows
+    assert "brightness_k" in rows[0]
+    assert "brightness_channel" in rows[0]
+    assert float(rows[0]["brightness_k"]) > 200        # Kelvin, not Celsius
+    assert "3.74" in rows[0]["brightness_channel"]
+
+
+def test_geojson_carries_brightness_too(client):
+    body = client.get(
+        "/api/v2/export?scene=april-9-demo&sources=firms&format=geojson").json()
+    properties = body["features"][0]["properties"]
+    assert properties["brightness_k"] > 200
+    assert properties["brightness_channel"]
+
+
 def test_csv_flattens_the_footprint_to_wkt(client):
     text = client.get(
         "/api/v2/export?scene=april-9-demo&sources=firms&format=csv").text

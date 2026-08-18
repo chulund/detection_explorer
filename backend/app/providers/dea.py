@@ -111,6 +111,12 @@ def parse_wfs_xml(xml_bytes: bytes, published_at: str, data_nature: str,
         raw_satellite = text("satellite")
         algorithm = text("process_algorithm")
         confidence = _num(text("confidence"))
+        # The WFS gives a Kelvin value and never says which band produced it. Naming a
+        # wavelength here would be a guess dressed as a measurement, so the channel says
+        # what is actually known: where the number came from, and nothing more.
+        brightness_k = _num(text("temp_kelvin"))
+        brightness_channel = (
+            "unspecified (DEA temp_kelvin)" if brightness_k is not None else None)
         out.append(Detection.point(
             id=f"{SOURCE}:{text('id')}",
             source=SOURCE,
@@ -123,6 +129,8 @@ def parse_wfs_xml(xml_bytes: bytes, published_at: str, data_nature: str,
             confidence=confidence,
             confidence_native=confidence,
             confidence_scheme="dea_percent",
+            brightness_k=brightness_k,
+            brightness_channel=brightness_channel,
             satellite=raw_satellite,
             platform=normalise_platform(raw_satellite),
             instrument=text("sensor").strip().upper() or "UNKNOWN",
@@ -156,6 +164,16 @@ class DeaProvider:
 
     def nature_for(self, scene: Scene) -> str:
         return "live" if scene.admits("live") else "static"
+
+    @staticmethod
+    def products_for(scene: Scene) -> list[str]:
+        """DEA has no product parameter: one query, whatever algorithms it holds.
+
+        Reported as `*` rather than as a guessed list, because the set of algorithms in
+        the response is a property of the service on the day, not of the request. The
+        demo hour alone comes back carrying five.
+        """
+        return ["*"]
 
     @staticmethod
     def bbox_for(scene: Scene) -> tuple[float, float, float, float]:

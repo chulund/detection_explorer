@@ -36,6 +36,7 @@ CSV_COLUMNS = (
     "detected_at", "published_at", "replay_of",
     "lat", "lon", "frp_mw",
     "confidence", "confidence_native", "confidence_scheme",
+    "brightness_k", "brightness_channel",
     "platform", "instrument", "product", "algorithm", "algorithm_version",
     "footprint_kind", "footprint_method", "footprint_model_version",
     "footprint_status", "footprint_side", "footprint_wkt",

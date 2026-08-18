@@ -28,6 +28,13 @@ const OWM_TILES = 'https://tile.openweathermap.org/map';
  * `styles` is always sent, even empty. Omitting it is legal per the spec but the NSW ArcGIS
  * services reject the request outright with `StylesNotDefined`, which is how an hour gets
  * lost to a layer that returns XML instead of a picture.
+ *
+ * For the DEA layers the style is now named rather than left blank. Blank asks for the
+ * service default, and the legends in `legends.js` describe one specific rendering: if
+ * DEA ever changed a default, the map would restyle itself and the legend would quietly
+ * start lying. Checked on 17 August 2026 over a populated New South Wales extent — the
+ * named style and the default return byte-identical tiles today, so pinning the name
+ * changes nothing now and prevents that later.
  */
 function wmsTemplate(base, layer, { styles = '', extra = {} } = {}) {
   const params = new URLSearchParams({
@@ -50,6 +57,22 @@ function wmsTemplate(base, layer, { styles = '', extra = {} } = {}) {
 const DEA_ATTRIB = '© Digital Earth Australia / Geoscience Australia';
 const NSW_ATTRIB = '© NSW Government';
 
+/**
+ * New South Wales and a margin, so tiles are never requested for the rest of the planet.
+ *
+ * Every one of these layers is continental or global, and the scenes are not.
+ */
+export const NSW_BOUNDS = [139.5, -38.5, 154.5, -27.5];
+
+/**
+ * Lifted a little, because these were drawn for a white page.
+ *
+ * All of them are pale continental rasters, and on a dark ground they wash out into an
+ * indistinct grey film. A small contrast and saturation push restores the separation the
+ * legend claims is there.
+ */
+const ON_DARK = { 'raster-contrast': 0.15, 'raster-saturation': 0.1 };
+
 export const CONTEXT_LAYERS = [
   // ---------------------------------------------------------------- fuel and ground
   {
@@ -57,7 +80,9 @@ export const CONTEXT_LAYERS = [
     label: 'Fuel moisture content',
     hint: 'Sentinel-2 mosaic. Below about 150% indicates elevated fire risk.',
     group: 'Fuel and ground cover',
-    url: wmsTemplate(DEA_WMS, 'ga_s2m_fmc_mosaic'),
+    url: wmsTemplate(DEA_WMS, 'ga_s2m_fmc_mosaic', { styles: 'FMC_mosaic' }),
+    bounds: NSW_BOUNDS,
+    paint: ON_DARK,
     opacity: 0.6,
     attribution: DEA_ATTRIB,
   },
@@ -66,7 +91,9 @@ export const CONTEXT_LAYERS = [
     label: 'Land cover',
     hint: 'What is on the ground, and therefore what is available to burn.',
     group: 'Fuel and ground cover',
-    url: wmsTemplate(DEA_WMS, 'ga_ls_landcover'),
+    url: wmsTemplate(DEA_WMS, 'ga_ls_landcover', { styles: 'level4' }),
+    bounds: NSW_BOUNDS,
+    paint: ON_DARK,
     opacity: 0.55,
     attribution: DEA_ATTRIB,
   },
@@ -75,7 +102,9 @@ export const CONTEXT_LAYERS = [
     label: 'Fractional cover',
     hint: 'Green vegetation, dry vegetation and bare soil, from annual Landsat composites.',
     group: 'Fuel and ground cover',
-    url: wmsTemplate(DEA_WMS, 'ga_ls_fc_pc_cyear_3'),
+    url: wmsTemplate(DEA_WMS, 'ga_ls_fc_pc_cyear_3', { styles: 'fc_rgb' }),
+    bounds: NSW_BOUNDS,
+    paint: ON_DARK,
     opacity: 0.5,
     attribution: DEA_ATTRIB,
   },
@@ -85,7 +114,9 @@ export const CONTEXT_LAYERS = [
     hint: 'How often surface water is present. Persistent water is both a barrier and a '
         + 'resource.',
     group: 'Fuel and ground cover',
-    url: wmsTemplate(DEA_WMS, 'ga_ls_wo_fq_cyear_3'),
+    url: wmsTemplate(DEA_WMS, 'ga_ls_wo_fq_cyear_3', { styles: 'annual_wofs_frequency_3' }),
+    bounds: NSW_BOUNDS,
+    paint: ON_DARK,
     opacity: 0.5,
     attribution: DEA_ATTRIB,
   },
@@ -98,6 +129,7 @@ export const CONTEXT_LAYERS = [
         + 'carries less fuel.',
     group: 'Fire history',
     url: wmsTemplate(NPWS_FIRE_WMS, '0'),
+    bounds: NSW_BOUNDS,
     opacity: 0.55,
     attribution: `${NSW_ATTRIB} / NPWS`,
   },
@@ -109,6 +141,7 @@ export const CONTEXT_LAYERS = [
     hint: 'Which council a detection falls in, which is usually the first question asked.',
     group: 'Boundaries',
     url: wmsTemplate(NSW_ADMIN_WMS, '1'),
+    bounds: NSW_BOUNDS,
     opacity: 0.7,
     attribution: NSW_ATTRIB,
   },
@@ -118,6 +151,7 @@ export const CONTEXT_LAYERS = [
     hint: 'National parks and reserves.',
     group: 'Boundaries',
     url: wmsTemplate(NSW_ADMIN_WMS, '6'),
+    bounds: NSW_BOUNDS,
     opacity: 0.5,
     attribution: NSW_ATTRIB,
   },

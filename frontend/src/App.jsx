@@ -1,29 +1,27 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { exportUrl, getDetections, getScenes, getStatus } from './api.js';
 import MapView from './map/MapView.jsx';
+import { DEFAULT_BASEMAP } from './map/basemaps.js';
 import { availableContextLayers, groupedContextLayers } from './map/contextLayers.js';
-import { brightFeatures, isoFromStamp } from './map/features.js';
+import { brightFeatures, decorateFeatures, isoFromStamp } from './map/features.js';
+import { colourMap } from './map/palette.js';
+import { buildTaxonomy, taxonomyKeys } from './map/taxonomy.js';
+import AboutSheet from './panels/AboutSheet.jsx';
 import DetailCard from './panels/DetailCard.jsx';
 import LayerPanel from './panels/LayerPanel.jsx';
+import LegendDock from './panels/LegendDock.jsx';
 import ProvenanceStrip from './panels/ProvenanceStrip.jsx';
 import RunPanel from './panels/RunPanel.jsx';
+import { Chip, Collapsible } from './panels/ui.jsx';
 import { formatAge, overpassMarkers, visibleOverpasses } from './time/overpass.js';
 
 /**
- * FR-LAYOUT: header, sidebar, map, layer panel, time slider.
+ * Header, sidebar, map, legend dock, timeline.
  *
  * Switching scenes clears every layer before loading the new one, so no record from one
- * epoch can survive into another. That is enforced on the server too; doing it here as well
- * means a slow response cannot leave April detections on screen under a live label.
+ * epoch can survive into another. That is enforced on the server too; doing it here as
+ * well means a slow response cannot leave April detections on screen under a live label.
  */
-
-const LAYERS = [
-  { id: 'ahi', label: 'BRIGHT / AHI footprints',
-    hint: '2 km geostationary pixels, from a run. A marker until you zoom past the size of a pixel.' },
-  { id: 'polar', label: 'VIIRS / MODIS footprints',
-    hint: '375 m polar pixels, two candidates each. A marker until you zoom past the size of a pixel.' },
-  { id: 'points', label: 'Points without geometry', hint: 'DEA hotspots carry no scan geometry' },
-];
 
 export default function App() {
   const [scenes, setScenes] = useState([]);
@@ -31,16 +29,22 @@ export default function App() {
   const [payload, setPayload] = useState(null);
   const [status, setStatus] = useState(null);
   const [selected, setSelected] = useState(null);
-  const [enabled, setEnabled] = useState({ ahi: true, polar: true, points: true });
+  const [enabledKeys, setEnabledKeys] = useState(null);   // null: nothing chosen yet
+  const [renderMode, setRenderMode] = useState('auto');
+  const [basemap, setBasemap] = useState(DEFAULT_BASEMAP);
   const [cursor, setCursor] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [runFrames, setRunFrames] = useState([]);
   const [contextEnabled, setContextEnabled] = useState({});
+  const [about, setAbout] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(true);
+  const [runOpen, setRunOpen] = useState(true);
 
   // The weather key is supplied to the browser by the API rather than baked into the
   // bundle, so a build can be shared without carrying anyone's credentials.
   const weatherKey = status?.context?.weather?.key ?? null;
+  const brightVersion = status?.providers?.bright?.algorithm_version ?? '2.0';
   const contextLayers = useMemo(() => availableContextLayers(weatherKey), [weatherKey]);
   const contextGroups = useMemo(() => groupedContextLayers(weatherKey), [weatherKey]);
   const toggleContext = (id, on) => setContextEnabled((prev) => ({ ...prev, [id]: on }));
@@ -54,6 +58,7 @@ export default function App() {
     // Clear before fetching: nothing from the previous epoch may linger on screen.
     setPayload(null);
     setSelected(null);
+    setEnabledKeys(null);
     setLoading(true);
     setError(null);
     getDetections(sceneId)
@@ -70,97 +75,137 @@ export default function App() {
     [scenes, sceneId, payload],
   );
 
-  const features = payload?.features ?? [];
+  // Retrieved records, plus whatever a run has recomputed. BRIGHT output arrives from a
+  // run rather than from retrieval, carrying the exact pixel polygons the backend joined
+  // from the sensor grid.
+  const allFeatures = useMemo(() => [
+    ...(payload?.features ?? []),
+    ...brightFeatures(runFrames, { algorithmVersion: brightVersion }),
+  ], [payload, runFrames, brightVersion]);
 
-  const split = useMemo(() => {
-    const ahi = { type: 'FeatureCollection', features: [] };
-    const polar = { type: 'FeatureCollection', features: [] };
-    const points = { type: 'FeatureCollection', features: [] };
-    for (const f of features) {
-      const method = f.properties?.footprint_method;
-      if (method === 'ahi_grid') ahi.features.push(f);
-      else if (method === 'polar_reconstructed') polar.features.push(f);
-      else points.features.push(f);
-    }
-    // BRIGHT output arrives from a run rather than from retrieval, so it is folded in
-    // here, carrying the exact pixel polygons the backend joined from the sensor grid.
-    ahi.features.push(...brightFeatures(runFrames));
-    return { ahi, polar, points };
-  }, [features, runFrames]);
+  const taxonomy = useMemo(
+    () => buildTaxonomy(allFeatures, payload?.sources),
+    [allFeatures, payload],
+  );
+  const colours = useMemo(() => colourMap(taxonomyKeys(taxonomy)), [taxonomy]);
+
+  // Everything with records is on by default. A row that returned nothing stays off,
+  // because switching it on would do nothing and look broken.
+  const effectiveKeys = useMemo(() => {
+    if (enabledKeys) return enabledKeys;
+    return new Set(taxonomy.flatMap(
+      (group) => group.rows.filter((row) => row.count > 0).map((row) => row.key)));
+  }, [enabledKeys, taxonomy]);
 
   // Which polar passes are visible at the cursor, and which are stale.
   const overpassState = useMemo(() => {
     if (!cursor) return { visible: [], dimmed: new Set() };
-    const polarProps = split.polar.features.map((f) => f.properties);
-    const visible = visibleOverpasses(polarProps, cursor);
-    const keep = new Set(visible.map((v) => v.id));
-    const dimmed = new Set(visible.filter((v) => v.state === 'dimmed').map((v) => v.id));
-    return { visible, dimmed, keep };
-  }, [split.polar, cursor]);
+    const polar = allFeatures
+      .filter((f) => f.properties?.footprint_method === 'polar_reconstructed')
+      .map((f) => f.properties);
+    const visible = visibleOverpasses(polar, cursor);
+    return {
+      visible,
+      keep: new Set(visible.map((v) => v.id)),
+      dimmed: new Set(visible.filter((v) => v.state === 'dimmed').map((v) => v.id)),
+    };
+  }, [allFeatures, cursor]);
 
-  const shown = useMemo(() => ({
-    ahi: enabled.ahi ? split.ahi : { type: 'FeatureCollection', features: [] },
-    polar: enabled.polar
-      ? {
-          type: 'FeatureCollection',
-          features: overpassState.keep
-            ? split.polar.features.filter((f) => overpassState.keep.has(f.properties.id))
-            : split.polar.features,
-        }
-      : { type: 'FeatureCollection', features: [] },
-    points: enabled.points ? split.points : { type: 'FeatureCollection', features: [] },
-  }), [split, enabled, overpassState]);
+  /**
+   * What the map is given: enabled layers only, past overpasses dropped, and every
+   * feature tagged with the colour and sensor class its layer paints from.
+   */
+  const shown = useMemo(() => {
+    const kept = allFeatures.filter((feature) => {
+      const properties = feature.properties ?? {};
+      if (properties.footprint_method === 'polar_reconstructed' && overpassState.keep) {
+        if (!overpassState.keep.has(properties.id)) return false;
+      }
+      return true;
+    });
+    return decorateFeatures(kept, { colours, dimmedIds: overpassState.dimmed });
+  }, [allFeatures, colours, overpassState]);
 
-  const markers = useMemo(
-    () => overpassMarkers(split.polar.features.map((f) => f.properties)),
-    [split.polar],
-  );
+  const markers = useMemo(() => overpassMarkers(
+    allFeatures
+      .filter((f) => f.properties?.footprint_method === 'polar_reconstructed')
+      .map((f) => f.properties),
+  ), [allFeatures]);
+
+  const toggleKey = useCallback((key, on) => {
+    setEnabledKeys((prev) => {
+      const next = new Set(prev ?? effectiveKeys);
+      if (on) next.add(key); else next.delete(key);
+      return next;
+    });
+  }, [effectiveKeys]);
+
+  const toggleGroup = useCallback((group, on) => {
+    setEnabledKeys((prev) => {
+      const next = new Set(prev ?? effectiveKeys);
+      for (const row of group.rows) {
+        if (!row.count) continue;
+        if (on) next.add(row.key); else next.delete(row.key);
+      }
+      return next;
+    });
+  }, [effectiveKeys]);
 
   return (
     <div className="app">
       <header className="header">
         <div className="brand">
-          <strong>Detection Explorer</strong>
-          <span className="muted"> — RMIT wildfire detection interface</span>
+          Detection Explorer
+          <span className="brand-sub">RMIT wildfire telemetry</span>
         </div>
+
         <div className="scene-picker">
           {scenes.map((s) => (
-            <button
-              key={s.id}
-              className={s.id === sceneId ? 'chip chip-on' : 'chip'}
-              onClick={() => setSceneId(s.id)}
-              title={s.description}
-            >
+            <Chip key={s.id} on={s.id === sceneId} onClick={() => setSceneId(s.id)}>
               {s.title}
-            </button>
+            </Chip>
           ))}
         </div>
+
+        <ProvenanceStrip sources={payload?.sources} detections={allFeatures} />
+
         <div className="tools">
-          <a className="chip" href={exportUrl(sceneId, 'geojson')}>Export GeoJSON</a>
-          <a className="chip" href={exportUrl(sceneId, 'csv')}>Export CSV</a>
+          <Chip onClick={() => setAbout(true)}>About this data</Chip>
+          <a className="chip" href={exportUrl(sceneId, 'geojson')}>GeoJSON</a>
+          <a className="chip" href={exportUrl(sceneId, 'csv')}>CSV</a>
         </div>
       </header>
-
-      {scene?.description && <div className="scene-note">{scene.description}</div>}
-
-      <ProvenanceStrip
-        sources={payload?.sources}
-        detections={features}
-        sceneWindow={scene?.window}
-      />
 
       <div className="body">
         <aside className="sidebar">
           {sceneId !== 'current' && (
-            <RunPanel scene={sceneId} onFrames={setRunFrames} />
+            <Collapsible
+              title="BRIGHT run"
+              open={runOpen}
+              onToggle={() => setRunOpen((was) => !was)}
+            >
+              <RunPanel scene={sceneId} onFrames={setRunFrames} />
+            </Collapsible>
           )}
-          <DetailCard detection={selected} />
+
+          <Collapsible
+            title="Detection"
+            open={detailOpen}
+            onToggle={() => setDetailOpen((was) => !was)}
+          >
+            <DetailCard detection={selected} />
+          </Collapsible>
+
           <LayerPanel
-            detectionLayers={LAYERS.map((l) => ({
-              ...l, count: split[l.id]?.features.length ?? 0,
-            }))}
-            detectionEnabled={enabled}
-            onDetectionToggle={(id, on) => setEnabled((prev) => ({ ...prev, [id]: on }))}
+            taxonomy={taxonomy}
+            colours={colours}
+            enabledKeys={effectiveKeys}
+            onToggleKey={toggleKey}
+            onToggleGroup={toggleGroup}
+            renderMode={renderMode}
+            onRenderMode={setRenderMode}
+            basemap={basemap}
+            onBasemap={setBasemap}
             contextGroups={contextGroups}
             contextEnabled={contextEnabled}
             onContextToggle={toggleContext}
@@ -172,14 +217,21 @@ export default function App() {
           {error && <div className="error">{error}</div>}
           {loading && <div className="loading">Loading…</div>}
           <MapView
-            ahi={shown.ahi}
-            polar={shown.polar}
-            points={shown.points}
+            features={shown}
+            enabledKeys={effectiveKeys}
+            renderMode={renderMode}
+            basemap={basemap}
+            selected={selected}
+            onSelect={setSelected}
             fitKey={sceneId}
-            dimmedIds={overpassState.dimmed}
             contextLayers={contextLayers}
             contextEnabled={contextEnabled}
-            onSelect={setSelected}
+          />
+          <LegendDock
+            taxonomy={taxonomy}
+            colours={colours}
+            contextLayers={contextLayers}
+            contextEnabled={contextEnabled}
           />
         </main>
       </div>
@@ -190,30 +242,36 @@ export default function App() {
         </div>
         <div className="overpasses">
           {overpassState.visible.length === 0 && (
-            <span className="muted">no polar observation at this time</span>
+            <span className="faint small">no polar observation at this time</span>
           )}
           {[...new Map(overpassState.visible.map((v) => [v.platform, v])).values()].map((v) => (
-            <span key={v.platform} className={`badge ${v.state === 'solid' ? 'nature-live' : ''}`}>
+            <span key={v.platform}
+                  className={`badge ${v.state === 'solid' ? 'badge-ok' : ''}`}>
               {v.platform}: {v.state === 'solid' ? 'observing now' : formatAge(v.ageSeconds)}
             </span>
           ))}
         </div>
         <div className="markers">
           {markers.map((m) => (
-            <button key={m.at} className="chip chip-small" onClick={() => setCursor(m.at)}>
+            <Chip key={m.at} onClick={() => setCursor(m.at)}>
               {m.at.slice(11, 16)}Z · {m.platforms.join(', ')} ({m.count})
+            </Chip>
+          ))}
+          {scene?.frames?.map((f) => (
+            <button key={f} className="chip chip-frame"
+                    onClick={() => setCursor(isoFromStamp(f))}>
+              {f.slice(8, 10)}:{f.slice(10, 12)}
             </button>
           ))}
-          {scene?.frames?.map((f) => {
-            const iso = isoFromStamp(f);
-            return (
-              <button key={f} className="chip chip-small chip-frame" onClick={() => setCursor(iso)}>
-                {f.slice(8, 10)}:{f.slice(10, 12)}
-              </button>
-            );
-          })}
         </div>
       </footer>
+
+      <AboutSheet
+        open={about}
+        onClose={() => setAbout(false)}
+        scene={scene}
+        sources={payload?.sources}
+      />
     </div>
   );
 }

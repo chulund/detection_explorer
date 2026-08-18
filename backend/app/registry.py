@@ -56,9 +56,18 @@ def provider_status() -> dict[str, dict]:
             "available": bool(pipeline),
             "reason": None if pipeline else "BRIGHT_PIPELINE_PATH unset",
             "footprints": True,
+            # The version the interface labels run output with. Configuration rather than
+            # a string in the frontend, so it changes when the pipeline changes and not
+            # when someone remembers to edit a label. DEA independently serves the older
+            # BRIGHT AHI 1.86, and the two must be distinguishable on the map.
+            "algorithm_version": bright_algorithm_version(),
             "note": "Optional. Absent it, the interface runs on DEA and FIRMS alone.",
         },
     }
+
+
+def bright_algorithm_version() -> str:
+    return os.environ.get("BRIGHT_ALGORITHM_VERSION", "2.0")
 
 
 def context_status() -> dict:
@@ -89,10 +98,18 @@ def fetch_scene(scene: Scene, sources: list[str] | None = None) -> dict:
     for name in wanted:
         provider = PROVIDERS.get(name)
         if provider is None:
-            notes[name] = {"available": False, "reason": "unknown provider", "count": 0}
+            notes[name] = {"available": False, "reason": "unknown provider", "count": 0,
+                           "products_queried": []}
             continue
+
+        # Reported even when the provider is unavailable. A missing key should not also
+        # erase the catalogue: the interface can still say which products it would have
+        # asked for, which is more useful than an empty section.
+        queried = list(provider.products_for(scene))
+
         if not provider.available(scene):
             notes[name] = {"available": False, "count": 0,
+                           "products_queried": queried,
                            "reason": getattr(provider, "last_fallback_reason", None)
                            or "unavailable for this scene"}
             continue
@@ -105,6 +122,7 @@ def fetch_scene(scene: Scene, sources: list[str] | None = None) -> dict:
         notes[name] = {
             "available": True,
             "count": len(kept),
+            "products_queried": queried,
             "dropped_by_scene": len(fetched) - len(kept),
             "used_fixture": getattr(provider, "last_used_fixture", False),
             # A partial result reported as a complete one is a quiet lie, so the

@@ -70,6 +70,29 @@ def _confidence(raw: str, instrument: str) -> tuple[float | None, str | float, s
     return None, raw, "viirs_categorical"
 
 
+#: The fire channel each instrument reports, and what to call it.
+#:
+#: Both instruments also carry a longwave window band (`bright_ti5`, `bright_t31`) used for
+#: cloud and background screening rather than for the fire itself. The fire channel is the
+#: one worth surfacing, and it is named so that nobody compares 3.74 um against 4 um as
+#: though they were the same measurement.
+BRIGHTNESS_CHANNELS = {
+    "VIIRS": ("bright_ti4", "VIIRS I4 3.74 um"),
+    "MODIS": ("brightness", "MODIS T21 4 um"),
+}
+
+
+def _brightness(row: dict, instrument: str) -> tuple[float | None, str | None]:
+    """Kelvin and its band, or nothing at all. An absent reading is not a zero."""
+    column, label = BRIGHTNESS_CHANNELS.get(instrument, (None, None))
+    if column is None:
+        return None, None
+    try:
+        return float(row.get(column) or ""), label
+    except (TypeError, ValueError):
+        return None, None
+
+
 def parse_firms_csv(text: str, product: str, published_at: str, data_nature: str,
                     window: dict[str, str]) -> list[Detection]:
     instrument = _instrument_for(product)
@@ -83,6 +106,7 @@ def parse_firms_csv(text: str, product: str, published_at: str, data_nature: str
         detected_at = f"{row.get('acq_date', '')}T{acq_time[:2]}:{acq_time[2:]}:00Z"
         satellite = (row.get("satellite") or "").strip()
         confidence, native, scheme = _confidence(row.get("confidence", ""), instrument)
+        brightness_k, brightness_channel = _brightness(row, instrument)
         try:
             frp = float(row.get("frp") or "nan")
         except ValueError:
@@ -100,6 +124,8 @@ def parse_firms_csv(text: str, product: str, published_at: str, data_nature: str
             confidence=confidence,
             confidence_native=native,
             confidence_scheme=scheme,
+            brightness_k=brightness_k,
+            brightness_channel=brightness_channel,
             satellite=satellite,
             platform=PLATFORMS.get(satellite, satellite or "unknown"),
             instrument=INSTRUMENTS.get(instrument, instrument),
@@ -148,6 +174,16 @@ class FirmsProvider:
     @staticmethod
     def sources_for(scene: Scene) -> tuple[str, ...]:
         return NRT_PRODUCTS if scene.admits("live") else STANDARD_PRODUCTS
+
+    @classmethod
+    def products_for(cls, scene: Scene) -> list[str]:
+        """What was asked for, which is not the same as what came back.
+
+        A product can be queried and return nothing for the window, as MODIS does in the
+        demo hour. Reporting the query lets the interface say "no MODIS detections"
+        rather than leaving a reader to conclude MODIS was never consulted.
+        """
+        return list(cls.sources_for(scene))
 
     @staticmethod
     def map_key() -> str | None:

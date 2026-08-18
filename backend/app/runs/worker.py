@@ -31,7 +31,15 @@ from .store import Run, RunStore
 FRAME_TIMEOUT_S = 120
 RUN_TIMEOUT_S = 1200
 
-DETECTION_COLUMNS = ("region", "x", "y", "lon", "lat", "frp", "confidence", "period", "dt")
+#: The pipeline's output file carries 27 columns; these are the ones the interface uses.
+#:
+#: `mir` is the AHI B07 mid-infrared brightness temperature, which is the channel the
+#: detection is actually made on, and `tir` is the B13 longwave window. `back_bt` is the
+#: background estimate the threshold was set against, which is what makes `mir` mean
+#: something. The rest are thresholds and quality flags belonging to the pipeline's own
+#: diagnostics rather than to a detection record.
+DETECTION_COLUMNS = ("region", "x", "y", "lon", "lat", "frp", "confidence", "period", "dt",
+                     "mir", "tir", "back_bt")
 
 
 class FrameRunner(Protocol):

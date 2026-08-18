@@ -62,3 +62,27 @@ npm install && npm run dev      # http://localhost:5173, proxies /api to port 80
 reports unavailable, a run is refused with 503, and the AHI footprint layer stays empty:
 the AHI pixel polygons come from the sensor grid that ships with the pipeline, joined on
 the `x`,`y` a run emits, and DEA's hotspot feed carries no pixel index to join on.
+
+`OPENWEATHER_API_KEY` enables the four weather layers. It is served to the browser by
+`/api/v2/status` rather than baked into the bundle, so a built frontend can be shared
+without carrying it. Absent, the layers are not offered at all: a checkbox that does
+nothing is a worse answer than an honest absence.
+
+Basemaps need no key of any kind, which is deliberate — see
+`docs/decisions/DEV-06-keyless-basemaps.md`.
+
+## Reading the map
+
+Detection layers are named by what produced them: one row per algorithm, version, sensor
+and platform, derived from the records rather than declared in advance. Warm colours are
+geostationary, cool are polar-orbiting. A row reading zero was queried and returned nothing
+for the window, which is not the same as never having been consulted.
+
+Footprints are drawn at true scale, so at a state-wide view a 375 m polar pixel is a
+fraction of a screen pixel. Each detection therefore also carries a marker that hands over
+to the real polygon once it is large enough to read. The **Rendering** control forces the
+question either way: *Footprints* keeps true scale at every zoom, *Points* marks every
+detection regardless of pixel size.
+
+Everything else — what the caveats mean, why confidence is stored twice, which band a
+brightness temperature came from — is in **About this data** in the header.
