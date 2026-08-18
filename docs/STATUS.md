@@ -1,14 +1,13 @@
-# Detection Explorer — status, 17 August 2026
+# Detection Explorer — status, 18 August 2026
 
-Written for someone picking this up cold. Backend and frontend are both built and tested.
-Three items remain and each needs a person: the walkthrough video, Karin's localhost
-approval quoted in `decisions/DEV-01-localhost.md`, and **a look at the running interface**.
-Nothing on this machine has seen the dashboard rendered: the Chrome extension used for
-automated checks is disconnected, and before that a driven tab reported
-`visibilityState: "hidden"`, which suspends `requestAnimationFrame` and stops MapLibre
-loading its style at all. Everything below is verified by tests, by a server-side render of
-the whole component tree, and by running the live API payload through the real frontend
-pipeline — but not by eye.
+Written for someone picking this up cold. Backend and frontend are built, tested, and have
+passed a pinned cold-run acceptance check through the production HTTP path. Three items still
+need a person: the walkthrough video, Karin's localhost approval quoted in
+`decisions/DEV-01-localhost.md`, and **a foreground look at this final build**. The in-app
+Browser connection was unavailable during the 18 August pass, so the new AHI/timeline/layer
+behaviour has not been signed off by eye. It is covered by style validation, DOM integration
+tests, a production build, and live API acceptance; that is strong evidence, but it is not a
+substitute for looking at the rendered map.
 
 An earlier version of this document said the AHI footprint layer was done. It was not: the
 join existed and nothing called it, so the layer had a feature count of zero. That is
@@ -22,10 +21,10 @@ overstates completion is the failure mode this project is meant to avoid.
 | 0. Prerequisites and spikes | 1–4 | **done** |
 | 1. Backend | 5–13 | **done** |
 | 2. Frontend | 14–18 | **done** |
-| 3. Delivery | 19–21 | **done except the video** |
+| 3. Delivery | 19–21 | **done except foreground visual acceptance and video** |
 
-**167 backend tests and 158 frontend tests pass**, and the backend was additionally verified
-from a genuine clean clone under both run profiles.
+**186 backend tests and 169 frontend tests pass**, and the production frontend build succeeds.
+The backend was additionally verified from a genuine clean clone under both run profiles.
 
 ## The dashboard revamp, 17 August
 
@@ -56,7 +55,9 @@ layers than any ramp would hold.
 **Rendering is Auto, Footprints or Points.** Auto keeps the marker until the polygon is
 legible. Footprints forces true scale everywhere, and deliberately keeps markers for
 records that carry no geometry at all, or the 1785 DEA hotspots would vanish from the mode
-that claims to show everything. Points drops the polygons entirely.
+that claims to show everything. Auto now makes the same distinction: a point-only record
+never fades merely because the map crossed a footprint zoom threshold. Points drops the
+polygons entirely.
 
 Every detection now shares one source, with colour and sensor class travelling on the
 feature, so eleven pairings cost six layers rather than thirty-three and toggling one is a
@@ -69,6 +70,14 @@ disagree, so the three-class fractional cover array it declares was ignored in f
 the nine-class one it draws. The DEA layers are now requested with a named style rather
 than the service default, because a legend describes one specific rendering; checked over a
 populated extent, the named style and the default return byte-identical tiles today.
+The scale control is bottom-right, so it cannot occupy the same corner as the legend.
+
+**The timeline selects one geostationary frame.** The active frame is the latest declared
+scene frame at or before the cursor, and AHI records are restricted to its ten-minute
+half-open interval. Polar observations retain the complete latest pass per platform and
+product, including point-only DEA records; adjacent scan-line timestamps stay together
+instead of all but the last minute disappearing. A selection is cleared when its frame or
+layer is no longer visible.
 
 **Brightness temperature reaches the interface.** It was in every source and in none of the
 responses: DEA sends `temp_kelvin`, FIRMS sends `bright_ti4`/`bright_ti5`, and the pipeline
@@ -108,11 +117,11 @@ the sensor grid**, and every polygon contains its own row's reported position.
 
 **Polar footprints were drawn correctly and could not be seen.** At the opening view the
 ground resolution is about 3.4 km per screen pixel, so a measured 478 m footprint spans
-**0.14 of a screen pixel**. The overpass filter also reduces 505 footprints to the 98 of
-the latest pass per platform, and at the default cursor both surviving passes are past the
-300 s tolerance, so all 98 draw at `fill-opacity: 0.12`. MapLibre's own tiler keeps every
-one of them at every zoom from 5 to 14, checked offline against `@maplibre/geojson-vt`, so
-this was never a data or tiling problem. It was arithmetic.
+**0.14 of a screen pixel**. At the default cursor both passes are past the 300 s tolerance,
+so they draw dimmed. MapLibre's own tiler keeps every footprint at every zoom from 5 to 14,
+checked offline against `@maplibre/geojson-vt`, so this was never a data or tiling problem.
+It was arithmetic. A separate timeline bug retained only the final timestamp of a multi-minute
+pass; the pass clustering described above now keeps all 505 FIRMS footprints.
 
 Two changes. The map now opens on the detections rather than on a fixed state-wide
 rectangle, which lands at about zoom 7. And each footprint layer gained a marker that
@@ -142,9 +151,10 @@ rejected expression kept as a live example.
 
 ## The map: working, after five real bugs
 
-**The map renders.** Verified visually against the production build: OpenStreetMap basemap,
-DEA detections across New South Wales, scale bar, both provenance cards, and the full timeline
-with six overpass markers and six frame buttons.
+**The map baseline rendered on 17 August.** That earlier production-build check showed the
+OpenStreetMap basemap, DEA detections across New South Wales, scale bar, both provenance cards,
+and the full timeline. It predates the final AHI, pass-clustering and layer-state changes, which
+is why the foreground pass in **Next** still matters.
 
 **A correction, because an earlier version of this document got it wrong.** It concluded the
 blank canvas was environmental, on the strength of a test showing that a bare MapLibre map
@@ -202,7 +212,7 @@ Spec: `RMIT_internal/docs/superpowers/specs/2026-08-13-detection-explorer-design
 
 ```powershell
 cd backend
-& "C:\Users\nurfa\.conda\envs\bright\python.exe" -m uvicorn app.main:app --reload --port 8000
+C:\Users\nurfa\.conda\envs\bright\python.exe -m uvicorn app.main:app --reload --port 8000
 # Swagger at http://localhost:8000/api/docs
 ```
 
@@ -212,18 +222,35 @@ Two profiles, both supported and both tested.
 scenes serve from committed fixtures; `/api/v2/status` reports `bright` unavailable. This is
 what proves the repository is publishable.
 
-**Research profile** adds `.env` with `FIRMS_MAP_KEY` and `BRIGHT_PIPELINE_PATH`, plus the
-staged parquet. This is what proves the computation genuinely runs.
+**Research profile** adds `.env` with `FIRMS_MAP_KEY`, `BRIGHT_PIPELINE_PATH` and the matching
+`BRIGHT_PIPELINE_SHA`, plus the staged parquet. This is what proves the computation genuinely
+runs reproducibly.
 
 ## What was proven, with numbers
 
-**BRIGHT genuinely recomputes, through the full HTTP path.** A six-frame run completed in
-**135 seconds and produced 342 detections** (71, 61, 54, 59, 59, 38). A repeat request returned
-`delivery: "cached"` with the same `run_id`, and the SSE endpoint replayed the journal with
-monotonic ids. Frame 04:20 returned 54, matching an earlier direct worker run exactly.
+**BRIGHT genuinely recomputes, through the full HTTP path.** The retained pipeline checkout
+is clean and pinned at `245517f8fb409b53783be9ac8388c702ca26a09c`. The worker now gives
+each attempt its own `runs/pipeline-output/<run_id>` root, sets that as `SDIR`, passes
+`--force`, and accepts output only from that directory. This matters because the earlier
+135-second claim was not a valid cold-run proof: an Explorer cache miss could still let the
+pipeline reuse files already present under its canonical `data/streamed/` tree.
 
-Note the timing: the plan assumed 15.5 s per frame from an old NRT log. The real figure is
-about 27 s, so the animation is **two and a quarter minutes, not ninety seconds**.
+The corrected cold run (`7d980edc68fa42438e1d50b1af8b985d`) completed all six uncached
+frames in **76.58–77.95 seconds per frame** and produced **342 detections**
+(71, 61, 54, 59, 59, 38). All 342 gained validated AHI polygons. The run response records the
+configured and actual pipeline commit, the real `config.yaml` digest, both AHI ancillary
+digests, every staged-input manifest digest, and the API schema version. A repeat request
+returned `delivery: "cached"`, attempt 1, and the identical `run_id`, with no BRIGHT child
+process. Budget roughly **eight minutes** for a cold six-frame run on this workstation.
+
+**Run state is now deterministic and terminal.** A relative `DETECTION_EXPLORER_STATE`
+resolves from this repository rather than the process working directory, eliminating the
+split `runs/` and `backend/runs/` stores. Frame caches publish atomically and a succeeded run
+is reusable only when all expected cache files parse and match their frame identities.
+Cancellation terminates the active subprocess, rechecks before publishing output, and emits
+a terminal event; timeouts fail rather than masquerading as user cancellation. Graceful
+shutdown and startup recovery both journal interrupted runs as terminal failures, so SSE
+followers can reconnect and finish instead of hanging.
 
 **Staging is complete and verified.** 174 of 174 day-slots across all six frames, 593 MB,
 manifest verified clean. Downloads ran at 7.5 s per day-slot, so the whole thing took about 18
@@ -290,36 +317,20 @@ machine happens to hold the BRIGHT pipeline at the default path — precisely th
 a clean-clone check should catch. `ahi.py` now reports availability and returns an empty
 lookup, and the AHI tests skip rather than fail when the pipeline is absent.
 
-## A known data defect, not yet fixed
-
-**DEA is being silently truncated.** A live call for the demo scene returned exactly 4000
-records, which is the WFS `count` cap in `providers/dea.py`. Silent truncation is precisely
-the kind of quiet dishonesty this project guards against everywhere else, so it should not
-ship as it stands.
-
-Two things to decide. The provider should detect `len(records) == count` and report
-`truncated: true` in the source notes, so the interface can say so. And the demo scene
-probably wants a New South Wales bounding box rather than the Australia-wide `AUS_BBOX`,
-which is what pushes the count over the cap in the first place; the scene is about one fire
-in NSW, and 4000 Australia-wide points are noise around it.
-
 ## Next
 
-Five things remain outstanding.
+Three human delivery steps remain; the reproducibility setting and cold run are complete.
 
-- **The footprint fix has not been confirmed on screen.** Every link is verified — 342 of
-  342 rows join the grid, all seven layers validate against the style specification, and
-  the map was observed opening at zoom 7 with 98 polar footprints rendering — but the
-  final visual check was not made, because the automated browser tab kept losing
-  foreground and a hidden tab suspends `requestAnimationFrame`, which stops MapLibre
-  loading its style at all. Worth knowing in its own right: a headless or backgrounded
-  tab is not a usable environment for checking this map. Open it yourself and look.
-- The 26.7 s per frame figure should replace the plan's 15.5 s wherever the animation budget
-  is discussed.
-- `BRIGHT_PIPELINE_SHA` is unset, so cache keys record `unpinned`. Set it before any run whose
-  output is meant to be reproducible.
-- Decision records DEV-01 to DEV-05 are still to be written, and DEV-01 needs Karin's
-  localhost approval quoted with its date.
-- The run cache under `runs/frames/` is empty, so the first "Run detection" recomputes all
-  six frames at roughly 27 s each. The pipeline's own output from the August run is still
-  in `data/streamed/`, which is what made the grid join verifiable without recomputing.
+- **Foreground visual acceptance of this final build.** Open the production preview at
+  `http://127.0.0.1:4173` and check both 1440×900 and 1280×720. Inspect AHI and polar
+  footprints at several zooms, point-only markers in Auto mode, all three render modes,
+  frame buttons, complete polar passes, layer/legend synchronisation, selection clearing,
+  context layers, popup/detail content, the Current scene, sidebar/timeline overflow, and
+  the browser console. The automated in-app Browser was unavailable on 18 August, so this
+  step is deliberately not marked done.
+- Record the walkthrough video after that visual acceptance pass.
+- Add Karin's localhost approval to `decisions/DEV-01-localhost.md`, quoted with its date.
+
+The accepted six-frame result is now cached under `runs/frames/` and repeats immediately.
+Changing the pinned commit, real pipeline configuration, AHI ancillaries, staged manifests,
+or API schema invalidates the relevant keys and forces a new isolated computation.

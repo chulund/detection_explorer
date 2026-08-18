@@ -32,19 +32,23 @@ In this one hour:
 
 ## Reading the map
 
-**Orange squares** are detections from the geostationary satellite, drawn at their true size of
-about 2 km across.
+Each row in the Layers panel names the algorithm, version, sensor and satellite that produced
+those detections. **Warm colours** identify geostationary products; **cool colours** identify
+polar-orbiting products. The exact hue separates products within those two families, and the
+legend shows only the layers currently switched on.
 
-**Blue shapes** are detections from the polar satellites, drawn at their true size of about
-375 m. Placed beside the orange squares, they show what the sharper instrument buys you.
+Footprints are drawn at their true size: about 2 km for the geostationary satellite and as
+little as 375 m for VIIRS. In the default **Auto** mode, a small marker carries each detection
+until its footprint is large enough to see. Choose **Footprints** to hold every available
+polygon at true scale, or **Points** to compare detections without their different pixel sizes.
 
-**Purple dots** are detections from a source that does not publish enough information to draw
-a footprint, so they are shown honestly as points rather than as invented shapes.
+Some sources do not publish enough information to reconstruct a footprint. Their detections
+remain points in every mode rather than being given invented shapes.
 
 Click any of them for the full detail: time, fire radiative power (a measure of how much heat
 the fire is releasing), location, confidence, and which satellite and algorithm produced it.
 
-## Why some blue shapes come in pairs
+## Why some polar shapes come in pairs
 
 Every polar footprint is drawn as **two overlapping shapes**, and this is deliberate.
 
@@ -61,19 +65,20 @@ This is the hour's timeline. The buttons show each moment something was observed
 geostationary frames, and the exact instants the polar satellites passed.
 
 Click any of them to move through the hour. The badges tell you what each satellite was doing
-at that moment, either observing now or last seen some minutes ago. Polar detections fade once
-their pass is over, because a satellite that flew past twenty minutes ago is not telling you
-anything about the fire now.
+at that moment, either observing now or last seen some minutes ago. A frame button shows only
+the corresponding ten-minute geostationary view. Polar detections retain the complete latest
+pass for each satellite and product, then dim once that pass is over, because a satellite that
+flew past twenty minutes ago is not telling you anything about the fire now.
 
 ## Running the detection yourself
 
 The panel marked **Run BRIGHT** does something unusual: it runs the team's fire detection
 algorithm live, on the original satellite data, while you watch.
 
-Press it and each of the six frames is computed in turn, taking around half a minute each,
-roughly two minutes in total. The counts appear as they finish. This is genuine computation,
-not a replay of stored answers, which is why it takes time. Run it again and it returns the
-stored result immediately, and says so.
+Press it and each of the six frames is computed in turn. On the research workstation the
+verified cold run took about 77 seconds per frame, or roughly eight minutes in total. The counts
+appear as they finish. This is genuine computation, not a replay of stored answers, which is
+why it takes time. Run it again and it returns the stored result immediately, and says so.
 
 ## What this tool is not
 
@@ -95,7 +100,7 @@ Two commands, in two terminals, from the project folder.
 
 ```
 cd backend
-uvicorn app.main:app --port 8000
+C:\Users\nurfa\.conda\envs\bright\python.exe -m uvicorn app.main:app --port 8000
 ```
 
 ```

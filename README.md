@@ -14,8 +14,9 @@ Built as deliverable D3 of an RMIT internal translation grant, August 2026.
 
 ## Status
 
-Under construction. See `docs/decisions/` for the decision record and the design spec it
-implements.
+Implementation, automated verification, and a pinned six-frame cold-run acceptance pass are
+complete. A foreground visual acceptance pass and the walkthrough video still remain; see
+`docs/STATUS.md` for the exact handoff state and `docs/decisions/` for the decision record.
 
 ## What this is not
 
@@ -45,13 +46,13 @@ providers are unavailable and why. The **research profile** adds a `.env` and re
 BRIGHT from staged inputs.
 
 Configuration is a `.env` at the repository root, read at startup. Copy `.env.example` and
-fill in what you have; every key in it is optional, and an absent key degrades a feature
-rather than stopping the service. A variable already exported in the shell wins over the
-file.
+fill in what you have. Providers without configuration degrade honestly rather than stopping
+the service; when `BRIGHT_PIPELINE_PATH` is set, `BRIGHT_PIPELINE_SHA` is also required and
+must match a clean checkout. A variable already exported in the shell wins over the file.
 
 ```powershell
 cd backend
-& "C:\Users\nurfa\.conda\envs\bright\python.exe" -m uvicorn app.main:app --reload --port 8000
+C:\Users\nurfa\.conda\envs\bright\python.exe -m uvicorn app.main:app --reload --port 8000
 # Swagger at http://localhost:8000/api/docs
 
 cd ../frontend
@@ -62,6 +63,12 @@ npm install && npm run dev      # http://localhost:5173, proxies /api to port 80
 reports unavailable, a run is refused with 503, and the AHI footprint layer stays empty:
 the AHI pixel polygons come from the sensor grid that ships with the pipeline, joined on
 the `x`,`y` a run emits, and DEA's hotspot feed carries no pixel index to join on.
+
+Research runs are tied to the configured commit, the real pipeline configuration, both AHI
+ancillaries, staged-input manifests, and the API schema. Each attempt computes with `--force`
+inside its own state directory; it never treats the pipeline's pre-existing `data/streamed`
+files as a fresh result. The accepted cold six-frame run took about eight minutes on the
+research workstation, while an identical repeat returned the validated cache immediately.
 
 `OPENWEATHER_API_KEY` enables the four weather layers. It is served to the browser by
 `/api/v2/status` rather than baked into the bundle, so a built frontend can be shared
