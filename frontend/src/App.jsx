@@ -5,7 +5,9 @@ import { DEFAULT_BASEMAP } from './map/basemaps.js';
 import { availableContextLayers, groupedContextLayers } from './map/contextLayers.js';
 import { brightFeatures, decorateFeatures, isoFromStamp } from './map/features.js';
 import { colourMap } from './map/palette.js';
-import { buildTaxonomy, taxonomyKeys } from './map/taxonomy.js';
+import {
+  buildTaxonomy, detectionKey, effectiveTaxonomyKeys, sensorClassFor, taxonomyKeys,
+} from './map/taxonomy.js';
 import AboutSheet from './panels/AboutSheet.jsx';
 import DetailCard from './panels/DetailCard.jsx';
 import LayerPanel from './panels/LayerPanel.jsx';
@@ -13,7 +15,9 @@ import LegendDock from './panels/LegendDock.jsx';
 import ProvenanceStrip from './panels/ProvenanceStrip.jsx';
 import RunPanel from './panels/RunPanel.jsx';
 import { Chip, Collapsible } from './panels/ui.jsx';
-import { formatAge, overpassMarkers, visibleOverpasses } from './time/overpass.js';
+import {
+  formatAge, inSelectedSceneFrame, overpassMarkers, visibleOverpasses,
+} from './time/overpass.js';
 
 /**
  * Header, sidebar, map, legend dock, timeline.
@@ -29,7 +33,7 @@ export default function App() {
   const [payload, setPayload] = useState(null);
   const [status, setStatus] = useState(null);
   const [selected, setSelected] = useState(null);
-  const [enabledKeys, setEnabledKeys] = useState(null);   // null: nothing chosen yet
+  const [keyOverrides, setKeyOverrides] = useState({});
   const [renderMode, setRenderMode] = useState('auto');
   const [basemap, setBasemap] = useState(DEFAULT_BASEMAP);
   const [cursor, setCursor] = useState(null);
@@ -58,16 +62,21 @@ export default function App() {
     // Clear before fetching: nothing from the previous epoch may linger on screen.
     setPayload(null);
     setSelected(null);
-    setEnabledKeys(null);
+    setKeyOverrides({});
+    setRunFrames([]);
+    setCursor(null);
     setLoading(true);
     setError(null);
+    let ignore = false;
     getDetections(sceneId)
       .then((body) => {
+        if (ignore) return;
         setPayload(body);
         setCursor(body.scene?.window?.end ?? null);
       })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+      .catch((e) => { if (!ignore) setError(e.message); })
+      .finally(() => { if (!ignore) setLoading(false); });
+    return () => { ignore = true; };
   }, [sceneId]);
 
   const scene = useMemo(
@@ -91,17 +100,16 @@ export default function App() {
 
   // Everything with records is on by default. A row that returned nothing stays off,
   // because switching it on would do nothing and look broken.
-  const effectiveKeys = useMemo(() => {
-    if (enabledKeys) return enabledKeys;
-    return new Set(taxonomy.flatMap(
-      (group) => group.rows.filter((row) => row.count > 0).map((row) => row.key)));
-  }, [enabledKeys, taxonomy]);
+  const effectiveKeys = useMemo(
+    () => effectiveTaxonomyKeys(taxonomy, keyOverrides),
+    [keyOverrides, taxonomy],
+  );
 
   // Which polar passes are visible at the cursor, and which are stale.
   const overpassState = useMemo(() => {
     if (!cursor) return { visible: [], dimmed: new Set() };
     const polar = allFeatures
-      .filter((f) => f.properties?.footprint_method === 'polar_reconstructed')
+      .filter((f) => sensorClassFor(f.properties?.instrument).orbit === 'polar-orbiting')
       .map((f) => f.properties);
     const visible = visibleOverpasses(polar, cursor);
     return {
@@ -118,38 +126,42 @@ export default function App() {
   const shown = useMemo(() => {
     const kept = allFeatures.filter((feature) => {
       const properties = feature.properties ?? {};
-      if (properties.footprint_method === 'polar_reconstructed' && overpassState.keep) {
+      if (!inSelectedSceneFrame(properties, scene?.frames, cursor)) return false;
+      if (sensorClassFor(properties.instrument).orbit === 'polar-orbiting'
+          && overpassState.keep) {
         if (!overpassState.keep.has(properties.id)) return false;
       }
       return true;
     });
     return decorateFeatures(kept, { colours, dimmedIds: overpassState.dimmed });
-  }, [allFeatures, colours, overpassState]);
+  }, [allFeatures, colours, cursor, overpassState, scene]);
 
   const markers = useMemo(() => overpassMarkers(
     allFeatures
-      .filter((f) => f.properties?.footprint_method === 'polar_reconstructed')
+      .filter((f) => sensorClassFor(f.properties?.instrument).orbit === 'polar-orbiting')
       .map((f) => f.properties),
   ), [allFeatures]);
 
+  useEffect(() => {
+    if (!selected) return;
+    const visible = shown.some((feature) => feature.properties?.id === selected.id);
+    if (!visible || !effectiveKeys.has(detectionKey(selected))) setSelected(null);
+  }, [effectiveKeys, selected, shown]);
+
   const toggleKey = useCallback((key, on) => {
-    setEnabledKeys((prev) => {
-      const next = new Set(prev ?? effectiveKeys);
-      if (on) next.add(key); else next.delete(key);
-      return next;
-    });
-  }, [effectiveKeys]);
+    setKeyOverrides((prev) => ({ ...prev, [key]: on }));
+  }, []);
 
   const toggleGroup = useCallback((group, on) => {
-    setEnabledKeys((prev) => {
-      const next = new Set(prev ?? effectiveKeys);
+    setKeyOverrides((prev) => {
+      const next = { ...prev };
       for (const row of group.rows) {
         if (!row.count) continue;
-        if (on) next.add(row.key); else next.delete(row.key);
+        next[row.key] = on;
       }
       return next;
     });
-  }, [effectiveKeys]);
+  }, []);
 
   return (
     <div className="app">
@@ -184,7 +196,7 @@ export default function App() {
               open={runOpen}
               onToggle={() => setRunOpen((was) => !was)}
             >
-              <RunPanel scene={sceneId} onFrames={setRunFrames} />
+              <RunPanel key={sceneId} scene={sceneId} onFrames={setRunFrames} />
             </Collapsible>
           )}
 
@@ -230,6 +242,7 @@ export default function App() {
           <LegendDock
             taxonomy={taxonomy}
             colours={colours}
+            enabledKeys={effectiveKeys}
             contextLayers={contextLayers}
             contextEnabled={contextEnabled}
           />

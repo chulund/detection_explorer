@@ -65,8 +65,7 @@ function ContextLegend({ layer }) {
 }
 
 /** Which algorithm is which colour, grouped by the comparison that matters. */
-function DetectionKey({ taxonomy, colours }) {
-  const groups = detectionLegend(taxonomy, colours);
+function DetectionKey({ groups }) {
   if (!groups.length) return null;
   return (
     <Card title="Detections" note="Warm: geostationary. Cool: polar-orbiting.">
@@ -87,10 +86,13 @@ function DetectionKey({ taxonomy, colours }) {
   );
 }
 
-export default function LegendDock({ taxonomy, colours, contextLayers, contextEnabled }) {
+export default function LegendDock({
+  taxonomy, colours, enabledKeys, contextLayers, contextEnabled,
+}) {
   const [open, setOpen] = useState(true);
   const active = (contextLayers ?? []).filter((layer) => contextEnabled[layer.id]);
-  const anything = active.length > 0 || (taxonomy ?? []).some((g) => g.count > 0);
+  const detections = detectionLegend(taxonomy, colours, enabledKeys);
+  const anything = active.length > 0 || detections.length > 0;
   if (!anything) return null;
 
   return (
@@ -101,12 +103,12 @@ export default function LegendDock({ taxonomy, colours, contextLayers, contextEn
         aria-expanded={open}
         onClick={() => setOpen((was) => !was)}
       >
-        {open ? '▾' : '▸'} Legend{active.length ? ` · ${active.length + 1}` : ''}
+        {open ? '▾' : '▸'} Legend · {active.length + (detections.length ? 1 : 0)}
       </button>
       {open && (
         <>
           {active.map((layer) => <ContextLegend key={layer.id} layer={layer} />)}
-          <DetectionKey taxonomy={taxonomy} colours={colours} />
+          <DetectionKey groups={detections} />
         </>
       )}
     </div>

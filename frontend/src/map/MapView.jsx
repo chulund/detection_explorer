@@ -152,7 +152,10 @@ export default function MapView({
       fitToData(map.current, latest.current.features);
     }));
     map.current.addControl(new maplibregl.FullscreenControl());
-    map.current.addControl(new maplibregl.ScaleControl({ unit: 'metric' }));
+    // The legend occupies bottom-left; keep the scale independently readable.
+    map.current.addControl(
+      new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right',
+    );
 
     popup.current = new maplibregl.Popup({
       closeButton: true, closeOnClick: false, offset: 12, maxWidth: '320px',

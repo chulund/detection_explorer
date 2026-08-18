@@ -5,7 +5,7 @@ import { cancelRun, followRun, getRun, startRun } from '../api.js';
  * Run BRIGHT and watch it work.
  *
  * The per-frame wait is left visible rather than hidden behind a spinner. A frame takes
- * around 27 seconds of real detection over a 29-day statistical window, and watching that
+ * around 77 seconds of real detection over a 29-day statistical window, and watching that
  * happen is the point of the exercise: it is the difference between an interface that
  * claims a computation and one that performs it.
  *
@@ -29,23 +29,31 @@ export default function RunPanel({ scene, onFrames }) {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const unfollow = useRef(null);
-
-  useEffect(() => () => unfollow.current?.(), []);
+  const generation = useRef(0);
 
   // A run belongs to a scene; switching scene abandons any view of the old one.
   useEffect(() => {
+    generation.current += 1;
     unfollow.current?.();
     setRun(null); setFrames([]); setState(null); setError(null);
-  }, [scene]);
+    onFrames?.([]);
+    return () => {
+      generation.current += 1;
+      unfollow.current?.();
+    };
+  }, [scene, onFrames]);
 
   const begin = async () => {
+    const token = ++generation.current;
     setBusy(true); setError(null); setFrames([]);
     try {
       const started = await startRun(scene);
+      if (generation.current !== token) return;
       setRun(started);
       setState(started.state);
       if (started.delivery === 'cached') {
         const finished = await getRun(started.run_id);
+        if (generation.current !== token) return;
         setState(finished.state);
         setFrames((finished.detections ?? []).map((d, i) => ({
           frame: d.frame, index: i + 1, of: finished.frames.length,
@@ -56,28 +64,51 @@ export default function RunPanel({ scene, onFrames }) {
       }
       unfollow.current = followRun(started.run_id, {
         onEvent: ({ kind, payload }) => {
+          if (generation.current !== token) return;
           if (kind === 'run.state') setState(payload.state);
           if (kind === 'run.frame') setFrames((prev) => [...prev, payload]);
         },
         onDone: async () => {
+          if (generation.current !== token) return;
           setState('succeeded');
-          const finished = await getRun(started.run_id);
-          onFrames?.(finished.detections ?? []);
+          try {
+            const finished = await getRun(started.run_id);
+            if (generation.current !== token) return;
+            onFrames?.(finished.detections ?? []);
+          } catch (e) {
+            if (generation.current === token) {
+              setError(`Run completed, but its result could not be loaded: ${e.message}`);
+            }
+          }
         },
-        onError: (payload) => { setState('failed'); setError(payload?.reason ?? 'failed'); },
+        onError: (payload) => {
+          if (generation.current !== token) return;
+          setState('failed'); setError(payload?.reason ?? 'failed');
+        },
+        onCancelled: () => {
+          if (generation.current !== token) return;
+          setState('cancelled'); setError(null);
+        },
       });
     } catch (e) {
-      setError(e.message);
+      if (generation.current === token) setError(e.message);
     } finally {
-      setBusy(false);
+      if (generation.current === token) setBusy(false);
     }
   };
 
   const stop = async () => {
     if (!run) return;
-    unfollow.current?.();
-    const cancelled = await cancelRun(run.run_id);
-    setState(cancelled.state);
+    const token = generation.current;
+    try {
+      const cancelled = await cancelRun(run.run_id);
+      if (generation.current !== token) return;
+      unfollow.current?.();
+      generation.current += 1;
+      setState(cancelled.state);
+    } catch (e) {
+      if (generation.current === token) setError(e.message);
+    }
   };
 
   const active = state === 'queued' || state === 'running';
@@ -88,7 +119,7 @@ export default function RunPanel({ scene, onFrames }) {
       <div className="run-actions">
         <button className="chip" onClick={begin} disabled={busy || active}
                 title="Recomputes six frames from staged Himawari inputs. Each frame is a
-real run over its own 29-day statistical window and takes roughly half a minute.">
+                real run over its own 29-day statistical window and takes roughly 75 seconds.">
           {active ? 'Running…' : 'Run BRIGHT'}
         </button>
         {active && <button className="chip" onClick={stop}>Cancel</button>}

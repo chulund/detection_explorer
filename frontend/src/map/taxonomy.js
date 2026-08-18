@@ -177,3 +177,10 @@ export function buildTaxonomy(features, sources) {
 export function taxonomyKeys(groups) {
   return (groups ?? []).flatMap((group) => group.rows.map((row) => row.key));
 }
+
+/** Non-empty rows default on; only an explicit user opt-out turns one off. */
+export function effectiveTaxonomyKeys(groups, overrides = {}) {
+  return new Set((groups ?? []).flatMap((group) => group.rows)
+    .filter((row) => row.count > 0 && overrides[row.key] !== false)
+    .map((row) => row.key));
+}

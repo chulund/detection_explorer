@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { buildTaxonomy, detectionKey, sensorClassFor } from './taxonomy.js';
+import {
+  buildTaxonomy, detectionKey, effectiveTaxonomyKeys, sensorClassFor,
+} from './taxonomy.js';
 import { colourFor } from './palette.js';
 
 const feature = (props) => ({
@@ -116,6 +118,24 @@ describe('buildTaxonomy', () => {
   it('survives an empty scene', () => {
     expect(buildTaxonomy([], {})).toEqual([]);
     expect(buildTaxonomy(undefined, undefined)).toEqual([]);
+  });
+});
+
+describe('effectiveTaxonomyKeys', () => {
+  it('defaults a newly completed run layer on while preserving explicit opt-outs', () => {
+    const before = buildTaxonomy([feature({})], SOURCES);
+    const deaKey = before.flatMap((g) => g.rows).find((r) => r.count > 0).key;
+    const overrides = { [deaKey]: false };
+    const after = buildTaxonomy([
+      feature({}),
+      feature({ source: 'bright', product: 'BRIGHT AHI', algorithm: 'BRIGHT',
+                algorithm_version: '2.0', instrument: 'AHI', platform: 'Himawari-9' }),
+    ], SOURCES);
+
+    const enabled = effectiveTaxonomyKeys(after, overrides);
+    const brightKey = after.flatMap((g) => g.rows).find((r) => r.source === 'bright').key;
+    expect(enabled.has(deaKey)).toBe(false);
+    expect(enabled.has(brightKey)).toBe(true);
   });
 });
 

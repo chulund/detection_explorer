@@ -126,11 +126,12 @@ export const legendFor = (layerId) => LEGENDS[layerId] ?? null;
  * no polar sensors to distinguish. Grouping by orbit is the comparison this interface
  * exists to make, so the key leads with it.
  */
-export function detectionLegend(groups, colours) {
+export function detectionLegend(groups, colours, enabledKeys = null) {
   const byOrbit = new Map();
   for (const group of groups ?? []) {
     for (const row of group.rows) {
       if (!row.count) continue;
+      if (enabledKeys !== null && !enabledKeys.has(row.key)) continue;
       const orbit = row.sensorClass.orbit;
       if (!byOrbit.has(orbit)) byOrbit.set(orbit, []);
       byOrbit.get(orbit).push({

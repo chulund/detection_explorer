@@ -63,6 +63,12 @@ describe('render modes say different things', () => {
     expect(paint('auto', 'det-dot-polar375', 'circle-opacity')[0]).toBe('interpolate');
   });
 
+  it('auto keeps a point-only detection visible above the footprint fade zoom', () => {
+    const opacity = JSON.stringify(paint('auto', 'det-dot-polar375', 'circle-opacity'));
+    expect(opacity).toContain('_hasFootprint');
+    expect(opacity).toContain('0');
+  });
+
   it('points keeps every marker at every zoom', () => {
     expect(paint('points', 'det-dot-polar375', 'circle-opacity')[0]).toBe('case');
   });

@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest';
-import { formatAge, overpassMarkers, visibleOverpasses } from './overpass.js';
+import {
+  activeSceneFrame, formatAge, inSelectedSceneFrame, overpassMarkers, visibleOverpasses,
+} from './overpass.js';
 
 const pass = (platform, product, at) => ({ platform, product, detected_at: at });
 
@@ -54,6 +56,18 @@ describe('visibleOverpasses', () => {
     expect(out).toHaveLength(2);
   });
 
+  test('adjacent scan-line timestamps remain part of the same retained pass', () => {
+    const out = visibleOverpasses(
+      [
+        pass('NOAA-20', 'VIIRS_NOAA20_SP', '2026-04-09T04:47:00Z'),
+        pass('NOAA-20', 'VIIRS_NOAA20_SP', '2026-04-09T04:48:00Z'),
+        pass('NOAA-20', 'VIIRS_NOAA20_SP', '2026-04-09T04:49:00Z'),
+      ],
+      '2026-04-09T04:50:00Z',
+    );
+    expect(out).toHaveLength(3);
+  });
+
   test('an earlier pass by the same platform is superseded', () => {
     const out = visibleOverpasses(
       [
@@ -64,6 +78,31 @@ describe('visibleOverpasses', () => {
     );
     expect(out).toHaveLength(1);
     expect(out[0].detected_at).toBe('2026-04-09T04:47:00Z');
+  });
+});
+
+describe('selected geostationary frame', () => {
+  const frames = ['20260409040000', '20260409041000', '20260409042000'];
+
+  test('uses the latest frame at or before the cursor', () => {
+    expect(activeSceneFrame(frames, '2026-04-09T04:18:00Z')).toBe('20260409041000');
+  });
+
+  test('keeps only geostationary detections in that ten-minute frame', () => {
+    const ahi = (detected_at) => ({ instrument: 'AHI', detected_at });
+    expect(inSelectedSceneFrame(ahi('2026-04-09T04:10:00Z'), frames,
+      '2026-04-09T04:18:00Z')).toBe(true);
+    expect(inSelectedSceneFrame(ahi('2026-04-09T04:19:59Z'), frames,
+      '2026-04-09T04:18:00Z')).toBe(true);
+    expect(inSelectedSceneFrame(ahi('2026-04-09T04:20:00Z'), frames,
+      '2026-04-09T04:18:00Z')).toBe(false);
+    expect(inSelectedSceneFrame(ahi('2026-04-09T04:08:21Z'), frames,
+      '2026-04-09T04:18:00Z')).toBe(false);
+  });
+
+  test('does not apply geostationary frame windows to point-only polar records', () => {
+    expect(inSelectedSceneFrame({ instrument: 'VIIRS', detected_at: '2026-04-09T04:08:21Z' },
+      frames, '2026-04-09T04:18:00Z')).toBe(true);
   });
 });
 

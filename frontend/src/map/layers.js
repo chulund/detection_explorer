@@ -51,8 +51,11 @@ export const SELECTABLE_LAYERS = ['det-fill', 'det-dot-geostationary',
 const SELECTION_ACCENT = '#ffe066';
 
 /** Solid below the fade, gone above it. `solid` may itself be a data expression. */
-const fadeOut = ([from, to], solid) =>
-  ['interpolate', ['linear'], ['zoom'], from, solid, to, 0];
+const fadeOut = ([from, to], solid) => [
+  'interpolate', ['linear'], ['zoom'],
+  from, solid,
+  to, ['case', ['get', '_hasFootprint'], 0, solid],
+];
 
 /** Dimmed means the pass is stale: observed earlier, not observed now. */
 const whenDimmed = (dimmed, solid) => ['case', ['get', '_dimmed'], dimmed, solid];

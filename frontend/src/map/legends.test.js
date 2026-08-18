@@ -107,6 +107,15 @@ describe('detectionLegend', () => {
     expect(detectionLegend(withEmpty, {})).toEqual([]);
   });
 
+  it('omits a non-empty detection layer that the user switched off', () => {
+    const enabled = new Set([
+      groups.flatMap((g) => g.rows).find((row) => row.instrument === 'AHI').key,
+    ]);
+    const filtered = detectionLegend(groups, colours, enabled);
+    expect(filtered.flatMap((group) => group.items)).toHaveLength(1);
+    expect(filtered[0].orbit).toBe('geostationary');
+  });
+
   it('survives an empty scene', () => {
     expect(detectionLegend(undefined, undefined)).toEqual([]);
   });

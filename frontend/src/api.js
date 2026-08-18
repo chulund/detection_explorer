@@ -45,7 +45,7 @@ export const cancelRun = (runId) =>
  * EventSource resends Last-Event-ID on reconnect by itself, and the server replays from
  * the journal, so a dropped connection resumes rather than restarting.
  */
-export function followRun(runId, { onEvent, onDone, onError }) {
+export function followRun(runId, { onEvent, onDone, onError, onCancelled }) {
   const source = new EventSource(`/api/v2/runs/${runId}/events`);
   for (const kind of ['run.state', 'run.frame', 'run.error', 'run.done']) {
     source.addEventListener(kind, (event) => {
@@ -53,6 +53,10 @@ export function followRun(runId, { onEvent, onDone, onError }) {
       onEvent?.({ kind, payload, id: event.lastEventId });
       if (kind === 'run.done') { source.close(); onDone?.(payload); }
       if (kind === 'run.error') { source.close(); onError?.(payload); }
+      if (kind === 'run.state' && payload.state === 'cancelled') {
+        source.close();
+        onCancelled?.(payload);
+      }
     });
   }
   source.onerror = () => {

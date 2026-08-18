@@ -12,12 +12,50 @@
  * fire twenty minutes apart, and that gap is the point.
  */
 
+import { sensorClassFor } from '../map/taxonomy.js';
+
 /** Half the AHI cadence: within this, a polar detection is contemporaneous with the frame. */
 export const TOLERANCE_SECONDS = 300;
+export const PASS_GAP_SECONDS = 900;
 
 const key = (d) => `${d.platform ?? 'unknown'}::${d.product ?? 'unknown'}`;
 
 const seconds = (iso) => Date.parse(iso) / 1000;
+
+const stampSeconds = (stamp) => Date.UTC(
+  Number(stamp.slice(0, 4)), Number(stamp.slice(4, 6)) - 1,
+  Number(stamp.slice(6, 8)), Number(stamp.slice(8, 10)),
+  Number(stamp.slice(10, 12)), Number(stamp.slice(12, 14) || 0),
+) / 1000;
+
+/** Latest declared scene frame at or before the cursor. */
+export function activeSceneFrame(frames, cursor) {
+  const now = seconds(cursor);
+  if (!Number.isFinite(now)) return null;
+  return [...(frames ?? [])]
+    .filter((frame) => stampSeconds(frame) <= now)
+    .sort((a, b) => stampSeconds(a) - stampSeconds(b))
+    .at(-1) ?? null;
+}
+
+/**
+ * Geostationary detections belong to one selected ten-minute frame. Other orbits use
+ * overpass retention instead and pass through here, including point-only polar records.
+ */
+export function inSelectedSceneFrame(detection, frames, cursor) {
+  if (sensorClassFor(detection?.instrument).orbit !== 'geostationary') return true;
+  if (!(frames ?? []).length || !cursor) return true;
+  const active = activeSceneFrame(frames, cursor);
+  if (!active) return false;
+  const start = stampSeconds(active);
+  const later = [...frames]
+    .map(stampSeconds)
+    .filter((at) => at > start)
+    .sort((a, b) => a - b)[0];
+  const end = later ?? start + 600;
+  const at = seconds(detection?.detected_at);
+  return Number.isFinite(at) && at >= start && at < end;
+}
 
 /**
  * @param {Array<{platform: string, product: string, detected_at: string}>} detections
@@ -40,10 +78,19 @@ export function visibleOverpasses(detections, sliderTime) {
 
   const out = [];
   for (const group of groups.values()) {
-    // Within a platform and product, keep the most recent pass at or before the cursor.
-    const latest = Math.max(...group.map((g) => g.at));
-    for (const { detection, at } of group) {
-      if (at !== latest) continue;
+    // A pass spans several scan-line timestamps. Cluster adjacent observations, then
+    // retain the newest whole cluster rather than only its final minute.
+    const ordered = [...group].sort((a, b) => a.at - b.at);
+    const passes = [];
+    for (const item of ordered) {
+      const current = passes.at(-1);
+      if (!current || item.at - current.at(-1).at > PASS_GAP_SECONDS) {
+        passes.push([item]);
+      } else {
+        current.push(item);
+      }
+    }
+    for (const { detection, at } of passes.at(-1) ?? []) {
       const age = Math.max(0, Math.round(now - at));
       out.push({
         ...detection,

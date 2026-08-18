@@ -15,9 +15,10 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@maplibre/maplibre-gl-style-spec": "^24.10.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^30.0.1",
     "vite": "^6.0.0",
-    "vitest": "^2.1.8",
-    "@maplibre/maplibre-gl-style-spec": "^24.10.0"
+    "vitest": "^2.1.8"
   }
 }
